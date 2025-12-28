@@ -1,0 +1,38 @@
+{
+    "name": "@exam-platform/api",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "tsx watch src/server.ts",
+        "build": "tsc",
+        "start": "node dist/server.js",
+        "lint": "eslint src/"
+    },
+    "dependencies": {
+        "@exam-platform/database": "*",
+        "@exam-platform/shared": "*",
+        "bcryptjs": "^2.4.3",
+        "bullmq": "^5.1.0",
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "drizzle-orm": "^0.38.3",
+        "express": "^4.18.2",
+        "helmet": "^7.1.0",
+        "ioredis": "^5.3.2",
+        "jsonwebtoken": "^9.0.2",
+        "morgan": "^1.10.0",
+        "postgres": "^3.4.5",
+        "zod": "^3.22.4"
+    },
+    "devDependencies": {
+        "@types/bcryptjs": "^2.4.6",
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.17.21",
+        "@types/jsonwebtoken": "^9.0.5",
+        "@types/morgan": "^1.9.9",
+        "@types/node": "^20.10.0",
+        "tsx": "^4.7.0",
+        "typescript": "^5.3.3"
+    }
+}

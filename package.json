@@ -1,0 +1,21 @@
+{
+  "name": "exam-platform",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "db:generate": "cd packages/database && npm run generate",
+    "db:push": "cd packages/database && npm run push",
+    "db:migrate": "cd packages/database && npm run migrate"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "npm@10.2.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

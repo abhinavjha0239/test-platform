@@ -1,0 +1,30 @@
+{
+    "name": "@exam-platform/database",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "generate": "drizzle-kit generate",
+        "push": "drizzle-kit push",
+        "migrate": "drizzle-kit migrate",
+        "studio": "drizzle-kit studio"
+    },
+    "dependencies": {
+        "@paralleldrive/cuid2": "^2.2.2",
+        "drizzle-orm": "^0.38.3",
+        "postgres": "^3.4.5"
+    },
+    "devDependencies": {
+        "drizzle-kit": "^0.30.1",
+        "typescript": "^5.3.3"
+    }
+}
