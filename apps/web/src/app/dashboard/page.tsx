@@ -7,6 +7,7 @@ import { useAuthStore } from '@/lib/auth-store';
 import { api } from '@/lib/api';
 import { Code2, Clock, CheckCircle, XCircle, Play, LogOut, Calendar } from 'lucide-react';
 import { ExamCountdown, useExamScheduleStatus } from '@/components/ExamCountdown';
+import { useToast } from '@/components/ui';
 import styles from './dashboard.module.css';
 
 interface Exam {
@@ -33,6 +34,7 @@ interface Attempt {
 export default function DashboardPage() {
     const router = useRouter();
     const { user, checkAuth, logout } = useAuthStore();
+    const toast = useToast();
     const [exams, setExams] = useState<Exam[]>([]);
     const [attempts, setAttempts] = useState<Attempt[]>([]);
     const [loading, setLoading] = useState(true);
@@ -102,11 +104,11 @@ export default function DashboardPage() {
             if (attempt?.id) {
                 router.push(`/exam/${attempt.id}`);
             } else {
-                alert('Failed to start exam. Please try again.');
+                toast.error('Failed to start exam. Please try again.');
             }
         } catch (error) {
             console.error('Start exam error:', error);
-            alert(error instanceof Error ? error.message : 'Failed to start exam');
+            toast.error(error instanceof Error ? error.message : 'Failed to start exam');
         }
     };
 
