@@ -23,6 +23,10 @@ const ACCESS_TOKEN_EXPIRY = '1d';
 const REFRESH_TOKEN_EXPIRY = '7d';
 const REFRESH_TOKEN_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
+// Redis SCAN configuration
+// Increased from 100 to 1000 for better performance with large token sets
+const REDIS_SCAN_COUNT = 1000;
+
 /**
  * Token payload structure
  */
@@ -282,8 +286,11 @@ export async function revokeTokenFamily(familyId: string): Promise<void> {
 /**
  * Helper function to scan Redis keys with a pattern
  * Uses SCAN instead of KEYS to avoid blocking Redis under load.
+ * 
+ * @param pattern - Redis key pattern to match
+ * @param count - Number of keys to return per SCAN iteration (default: REDIS_SCAN_COUNT)
  */
-async function scanKeys(pattern: string): Promise<string[]> {
+async function scanKeys(pattern: string, count: number = REDIS_SCAN_COUNT): Promise<string[]> {
     const keys: string[] = [];
     let cursor = '0';
     do {
@@ -292,7 +299,7 @@ async function scanKeys(pattern: string): Promise<string[]> {
             'MATCH',
             pattern,
             'COUNT',
-            '100'
+            count.toString()
         );
         cursor = nextCursor;
         keys.push(...batch);
