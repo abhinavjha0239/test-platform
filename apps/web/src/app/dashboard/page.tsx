@@ -76,10 +76,7 @@ export default function DashboardPage() {
             
             if (!mounted) return;
             
-            // Get fresh user state after checkAuth
-            const currentUser = useAuthStore.getState().user;
-            
-            if (!currentUser) {
+            if (!user) {
                 router.push('/login');
                 return;
             }
@@ -93,7 +90,7 @@ export default function DashboardPage() {
         init();
         
         return () => { mounted = false; };
-    }, [checkAuth, router, loadData]);
+    }, [checkAuth, router, loadData, user]);
 
     const handleStartExam = async (examId: string) => {
         try {
