@@ -43,13 +43,13 @@ router.get('/exam/:examId', authenticate, requireRole('ADMIN', 'REVIEWER'), asyn
 
         // FIX: Return numbers instead of % strings to match API type expectations
         const passRateNum = completedAttempts.length > 0
-            ? passedAttempts.length / completedAttempts.length * 100
+            ? (passedAttempts.length / completedAttempts.length) * 100
             : null;
         const averageScoreNum = completedAttempts.length > 0
             ? completedAttempts.reduce((sum, a) => {
                 const total = (a.totalPublic || 0) + (a.totalHidden || 0);
                 const passed = (a.publicScore || 0) + (a.hiddenScore || 0);
-                return sum + (total > 0 ? passed / total * 100 : 0);
+                return sum + (total > 0 ? (passed / total) * 100 : 0);
             }, 0) / completedAttempts.length
             : null;
             
