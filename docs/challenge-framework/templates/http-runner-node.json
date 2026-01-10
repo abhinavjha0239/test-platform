@@ -1,0 +1,23 @@
+{
+  "_comment": "For runtime=node, the grader auto-generates package.json from challenge.dependencies. No generatedFiles needed unless you want to override.",
+  "mode": "http",
+  "runtime": "node",
+  "candidate": {
+    "image": "node:20-alpine",
+    "workdir": "/app",
+    "installCommand": "npm install --legacy-peer-deps 2>&1",
+    "runCommand": "node src/server.js",
+    "port": 3000,
+    "healthPath": "/health",
+    "startupTimeoutMs": 20000
+  },
+  "tests": {
+    "framework": "jest",
+    "image": "node:20-alpine",
+    "installCommand": "npm install --legacy-peer-deps 2>&1",
+    "testCommand": "npm test 2>&1 || true",
+    "timeoutMs": 120000
+  }
+}
+
+

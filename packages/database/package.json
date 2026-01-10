@@ -16,15 +16,21 @@
         "generate": "drizzle-kit generate",
         "push": "drizzle-kit push",
         "migrate": "drizzle-kit migrate",
-        "studio": "drizzle-kit studio"
+        "studio": "drizzle-kit studio",
+        "seed": "tsx seed.ts",
+        "sync-challenges": "tsx sync-challenges.ts",
+        "sync-all": "tsx sync-all-challenges.ts"
     },
     "dependencies": {
         "@paralleldrive/cuid2": "^2.2.2",
+        "dotenv": "^16.6.1",
         "drizzle-orm": "^0.38.3",
         "postgres": "^3.4.5"
     },
     "devDependencies": {
+        "bcrypt": "^6.0.0",
         "drizzle-kit": "^0.30.1",
+        "tsx": "^4.7.0",
         "typescript": "^5.3.3"
     }
 }

@@ -1,0 +1,184 @@
+.container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--bg-primary);
+}
+
+.loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: var(--text-muted);
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+}
+
+.logo {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 24px;
+    background: rgba(0, 122, 204, 0.15);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-blue);
+}
+
+.errorIcon {
+    margin-bottom: 24px;
+    color: var(--error);
+}
+
+.infoIcon {
+    margin-bottom: 24px;
+    color: var(--accent-green);
+}
+
+.card h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+}
+
+.errorMessage,
+.message {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.examInfo {
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 24px 0;
+    text-align: left;
+}
+
+.examInfo h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+}
+
+.description {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0 0 16px 0;
+}
+
+.meta {
+    display: flex;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.meta span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.loginPrompt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(206, 145, 120, 0.1);
+    border: 1px solid var(--accent-yellow);
+    border-radius: 8px;
+    margin: 24px 0;
+    text-align: left;
+}
+
+.loginPrompt svg {
+    color: var(--accent-yellow);
+    flex-shrink: 0;
+}
+
+.loginPrompt p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.actions .btn {
+    flex: 1;
+    max-width: 160px;
+}
+
+.userInfo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+
+.userInfo strong {
+    color: var(--text-primary);
+}
+
+.expires {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+}
+
+.errorAlert {
+    padding: 12px 16px;
+    background: rgba(244, 71, 71, 0.1);
+    border: 1px solid var(--error);
+    border-radius: 8px;
+    color: var(--error);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.btn-lg {
+    padding: 14px 32px !important;
+    font-size: 16px !important;
+}
+
+.disclaimer {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 16px;
+    line-height: 1.5;
+}
+
+

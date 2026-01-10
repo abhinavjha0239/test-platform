@@ -1,0 +1,25 @@
+{
+  "mode": "http",
+  "runtime": "rust",
+  "candidate": {
+    "image": "rust:1.83-slim",
+    "workdir": "/app",
+    "generatedFiles": {
+      "Cargo.toml": "[package]\nname = \"candidate\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\naxum = \"0.7\"\ntokio = { version = \"1\", features = [\"macros\", \"rt-multi-thread\", \"net\"] }\nserde = { version = \"1\", features = [\"derive\"] }\nserde_json = \"1\"\n"
+    },
+    "installCommand": "cargo build --release",
+    "runCommand": "./target/release/candidate",
+    "port": 3000,
+    "healthPath": "/health",
+    "startupTimeoutMs": 90000
+  },
+  "tests": {
+    "framework": "jest",
+    "image": "node:20-alpine",
+    "installCommand": "npm install --legacy-peer-deps 2>&1",
+    "testCommand": "npm test 2>&1 || true",
+    "timeoutMs": 240000
+  }
+}
+
+

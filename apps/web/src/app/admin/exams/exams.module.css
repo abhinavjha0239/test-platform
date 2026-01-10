@@ -1,0 +1,146 @@
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.searchBox {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 10px 14px 10px 40px;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: border-color 0.15s ease;
+}
+
+.searchInput:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+.titleCell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.examTitle {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.challengeName {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.actionBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+}
+
+.actionBtn:hover {
+    background: var(--bg-hover);
+    color: var(--accent-blue);
+}
+
+.actionBtnDanger:hover {
+    color: var(--error);
+}
+
+.inviteForm {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.inviteUrlBox {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.inviteUrlLabel {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.inviteUrlRow {
+    display: flex;
+    gap: 8px;
+}
+
+.inviteUrlInput {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-family: monospace;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* Form Styles */
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 800px;
+}
+
+.formCard {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.formSection {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    color: var(--text-primary);
+}
+
+.checkboxGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+

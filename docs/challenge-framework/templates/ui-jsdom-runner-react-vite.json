@@ -1,0 +1,27 @@
+{
+  "mode": "ui_jsdom",
+  "runtime": "react",
+  "candidate": {
+    "image": "node:20-alpine",
+    "workdir": "/app",
+    "generatedFiles": {
+      "package.json": "{\n  \"name\": \"candidate-react-ui-jsdom\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite --host 0.0.0.0 --port $PORT\",\n    \"build\": \"vite build\"\n  },\n  \"dependencies\": {\n    \"react\": \"^18.3.1\",\n    \"react-dom\": \"^18.3.1\"\n  },\n  \"devDependencies\": {\n    \"vite\": \"^5.4.10\",\n    \"@vitejs/plugin-react\": \"^4.3.3\",\n    \"jsdom\": \"^24.1.0\",\n    \"@testing-library/react\": \"^16.0.1\",\n    \"@testing-library/dom\": \"^10.4.0\",\n    \"@testing-library/user-event\": \"^14.5.2\"\n  }\n}\n",
+      ".grader/ui-harness.cjs": "// See: ui-jsdom-harness.example.cjs\n"
+    },
+    "installCommand": "npm install --legacy-peer-deps 2>&1",
+    "runCommand": "node .grader/ui-harness.cjs",
+    "port": 3000,
+    "healthPath": "/health",
+    "env": {
+      "APP_ENTRY": "/src/App.jsx"
+    },
+    "startupTimeoutMs": 45000
+  },
+  "tests": {
+    "framework": "vitest",
+    "image": "node:20-alpine",
+    "timeoutMs": 180000
+  }
+}
+
+

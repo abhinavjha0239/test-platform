@@ -1,0 +1,25 @@
+{
+  "mode": "http",
+  "runtime": "go",
+  "candidate": {
+    "image": "golang:1.23-alpine",
+    "workdir": "/app",
+    "generatedFiles": {
+      "go.mod": "module candidate\n\ngo 1.23\n"
+    },
+    "installCommand": "go build -o app .",
+    "runCommand": "./app",
+    "port": 3000,
+    "healthPath": "/health",
+    "startupTimeoutMs": 30000
+  },
+  "tests": {
+    "framework": "jest",
+    "image": "node:20-alpine",
+    "installCommand": "npm install --legacy-peer-deps 2>&1",
+    "testCommand": "npm test 2>&1 || true",
+    "timeoutMs": 120000
+  }
+}
+
+

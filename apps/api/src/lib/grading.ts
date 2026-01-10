@@ -1,78 +1,136 @@
+import { Queue, QueueEvents } from 'bullmq';
 import type { GradingJob } from '@exam-platform/shared';
+import { redisConnection } from './redis.js';
 
-// Grading queue stub - In production, use BullMQ with Redis
-// For MVP, we'll use a simpler in-memory approach
-
-interface GradingJobWithPreview extends GradingJob {
+/**
+ * Extended grading job with preview flag
+ */
+export interface GradingJobWithPreview extends GradingJob {
     isPreview?: boolean;
 }
 
-const gradingJobs = new Map<string, { job: GradingJobWithPreview; status: string; result?: unknown }>();
+/**
+ * BullMQ Queue for grading jobs
+ */
+export const gradingQueue = new Queue<GradingJobWithPreview>('grading', {
+    connection: redisConnection,
+    defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+            type: 'exponential',
+            delay: 1000,
+        },
+        removeOnComplete: {
+            count: 100, // Keep last 100 completed jobs
+            age: 24 * 60 * 60, // Keep for 24 hours
+        },
+        removeOnFail: {
+            count: 50, // Keep last 50 failed jobs
+        },
+    },
+});
 
+/**
+ * Queue events for monitoring
+ */
+export const gradingQueueEvents = new QueueEvents('grading', {
+    connection: redisConnection,
+});
+
+// Log queue events
+gradingQueueEvents.on('completed', ({ jobId, returnvalue }) => {
+    console.log(`✅ Grading job ${jobId} completed`);
+});
+
+gradingQueueEvents.on('failed', ({ jobId, failedReason }) => {
+    console.error(`❌ Grading job ${jobId} failed: ${failedReason}`);
+});
+
+gradingQueueEvents.on('progress', ({ jobId, data }) => {
+    console.log(`📊 Grading job ${jobId} progress:`, data);
+});
+
+/**
+ * Add a grading job to the queue
+ */
 export async function addGradingJob(job: GradingJobWithPreview): Promise<string> {
-    const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-
-    gradingJobs.set(jobId, { job, status: 'queued' });
-
-    console.log(`[Grading] Job ${jobId} queued for attempt ${job.attemptId}`);
-
-    // In production, this would be:
-    // const queue = new Queue('grading', { connection: redisConnection });
-    // await queue.add('grade', job);
-
-    // Trigger grading asynchronously
-    processGradingJob(jobId).catch(err => {
-        console.error('[Grading] Job failed:', err);
+    const queueJob = await gradingQueue.add('grade', job, {
+        jobId: `grading_${job.attemptId}_${Date.now()}`,
+        priority: job.isPreview ? 10 : 1, // Preview runs have lower priority
     });
 
-    return jobId;
+    console.log(`[Grading] Job ${queueJob.id} queued for attempt ${job.attemptId}${job.isPreview ? ' (preview)' : ''}`);
+    
+    return queueJob.id!;
 }
 
+/**
+ * Get job status by ID
+ */
 export async function getJobStatus(jobId: string) {
-    return gradingJobs.get(jobId) || null;
+    const job = await gradingQueue.getJob(jobId);
+    if (!job) return null;
+
+    const state = await job.getState();
+    
+    return {
+        id: job.id,
+        state,
+        data: job.data,
+        progress: job.progress,
+        returnvalue: job.returnvalue,
+        failedReason: job.failedReason,
+        attemptsMade: job.attemptsMade,
+        timestamp: job.timestamp,
+        finishedOn: job.finishedOn,
+        processedOn: job.processedOn,
+    };
 }
 
-async function processGradingJob(jobId: string) {
-    const jobData = gradingJobs.get(jobId);
-    if (!jobData) return;
+/**
+ * Get queue statistics
+ */
+export async function getQueueStats() {
+    const [waiting, active, completed, failed, delayed] = await Promise.all([
+        gradingQueue.getWaitingCount(),
+        gradingQueue.getActiveCount(),
+        gradingQueue.getCompletedCount(),
+        gradingQueue.getFailedCount(),
+        gradingQueue.getDelayedCount(),
+    ]);
 
-    jobData.status = 'processing';
-    console.log(`[Grading] Processing job ${jobId}...`);
-
-    try {
-        // Use local grader (no Docker required) for development
-        // In production, switch to docker-grader for security
-        const { runLocalGrader } = await import('./local-grader.js');
-        const result = await runLocalGrader(jobData.job);
-
-        console.log(`[Grading] Job ${jobId} completed:`, result);
-
-        jobData.status = 'completed';
-        jobData.result = result;
-
-        // Update database with results
-        const { updateAttemptResults } = await import('./grading-results.js');
-        await updateAttemptResults(jobData.job.attemptId, result, jobData.job.isPreview ?? false);
-    } catch (error) {
-        console.error('[Grading] Error:', error);
-        jobData.status = 'failed';
-        jobData.result = { error: String(error) };
-
-        // Still update the attempt with error status
-        try {
-            const { updateAttemptResults } = await import('./grading-results.js');
-            await updateAttemptResults(jobData.job.attemptId, {
-                publicScore: 0,
-                hiddenScore: 0,
-                totalPublic: 0,
-                totalHidden: 0,
-                logs: `Grading error: ${String(error)}`,
-                success: false,
-                error: String(error),
-            });
-        } catch (updateError) {
-            console.error('[Grading] Failed to update attempt with error:', updateError);
-        }
-    }
+    return { waiting, active, completed, failed, delayed };
 }
 
+/**
+ * Clean old jobs from the queue
+ */
+export async function cleanQueue(gracePeriod: number = 24 * 60 * 60 * 1000) {
+    await gradingQueue.clean(gracePeriod, 1000, 'completed');
+    await gradingQueue.clean(gracePeriod, 100, 'failed');
+}
+
+/**
+ * Pause the grading queue
+ */
+export async function pauseQueue() {
+    await gradingQueue.pause();
+    console.log('Grading queue paused');
+}
+
+/**
+ * Resume the grading queue
+ */
+export async function resumeQueue() {
+    await gradingQueue.resume();
+    console.log('Grading queue resumed');
+}
+
+/**
+ * Close queue connections gracefully
+ */
+export async function closeGradingQueue() {
+    await gradingQueueEvents.close();
+    await gradingQueue.close();
+    console.log('Grading queue closed');
+}

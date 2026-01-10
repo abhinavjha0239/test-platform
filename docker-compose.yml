@@ -1,6 +1,30 @@
 version: '3.8'
 
 services:
+  # API Server
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/exam_platform
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-at-least-32-chars
+      - FRONTEND_URL=http://localhost:3000
+      - NODE_ENV=production
+      # Security: Enable Docker-based grading isolation
+      - USE_DOCKER_GRADER=true
+    volumes:
+      # Mount Docker socket for docker-in-docker grading
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   # PostgreSQL Database (for local development only - use Supabase in production)
   postgres:
     image: postgres:15-alpine

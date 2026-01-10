@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/auth-store';
 import { api } from '@/lib/api';
-import { Code2, Clock, CheckCircle, XCircle, Play, LogOut } from 'lucide-react';
+import { Code2, Clock, CheckCircle, XCircle, Play, LogOut, Calendar } from 'lucide-react';
+import { ExamCountdown, useExamScheduleStatus } from '@/components/ExamCountdown';
 import styles from './dashboard.module.css';
 
 interface Exam {
@@ -13,6 +14,9 @@ interface Exam {
     title: string;
     description?: string;
     timeLimit: number;
+    scheduledStartAt?: string | null;
+    scheduledEndAt?: string | null;
+    timezone?: string;
     challenge?: { name: string };
 }
 
@@ -32,40 +36,77 @@ export default function DashboardPage() {
     const [exams, setExams] = useState<Exam[]>([]);
     const [attempts, setAttempts] = useState<Attempt[]>([]);
     const [loading, setLoading] = useState(true);
+    
+    // Prevent duplicate fetches
+    const hasFetchedRef = useRef(false);
+    const isFetchingRef = useRef(false);
 
-    useEffect(() => {
-        checkAuth().then(() => {
-            if (!user) router.push('/login');
-        });
-    }, []);
-
-    useEffect(() => {
-        if (user) {
-            loadData();
-        }
-    }, [user]);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
+        // Prevent concurrent fetches
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
+        
         try {
-            const [examsRes, attemptsRes] = await Promise.all([
-                api.getExams(),
-                api.getAttempts(),
+            const [examsRes, attemptsData] = await Promise.all([
+                api.getExams(),    // Returns PaginatedResponse with .data
+                api.getAttempts(), // Returns array directly
             ]);
-            setExams(examsRes.data);
-            setAttempts(attemptsRes.data);
+            // Filter out any invalid items
+            const validExams = (examsRes?.data || []).filter((e: Exam) => e && e.id);
+            const validAttempts = (attemptsData || []).filter((a: Attempt) => a && a.id);
+            setExams(validExams);
+            setAttempts(validAttempts);
+            hasFetchedRef.current = true;
         } catch (error) {
             console.error('Failed to load data:', error);
+            setExams([]);
+            setAttempts([]);
         } finally {
             setLoading(false);
+            isFetchingRef.current = false;
         }
-    };
+    }, []);
+
+    // Single consolidated effect for auth check and data loading
+    useEffect(() => {
+        let mounted = true;
+        
+        const init = async () => {
+            await checkAuth();
+            
+            if (!mounted) return;
+            
+            // Get fresh user state after checkAuth
+            const currentUser = useAuthStore.getState().user;
+            
+            if (!currentUser) {
+                router.push('/login');
+                return;
+            }
+            
+            // Only fetch data if we haven't already
+            if (!hasFetchedRef.current) {
+                loadData();
+            }
+        };
+        
+        init();
+        
+        return () => { mounted = false; };
+    }, [checkAuth, router, loadData]);
 
     const handleStartExam = async (examId: string) => {
         try {
-            const { data } = await api.startAttempt(examId);
-            router.push(`/exam/${data.id}`);
+            // api.startAttempt returns the attempt data directly
+            const attempt = await api.startAttempt(examId);
+            if (attempt?.id) {
+                router.push(`/exam/${attempt.id}`);
+            } else {
+                alert('Failed to start exam. Please try again.');
+            }
         } catch (error) {
-            alert(String(error));
+            console.error('Start exam error:', error);
+            alert(error instanceof Error ? error.message : 'Failed to start exam');
         }
     };
 
@@ -99,27 +140,16 @@ export default function DashboardPage() {
                 {/* Available Exams */}
                 <section className={styles.section}>
                     <h2>Available Exams</h2>
-                    {exams.length === 0 ? (
+                    {!exams || exams.length === 0 ? (
                         <p className={styles.empty}>No exams available at the moment.</p>
                     ) : (
                         <div className={styles.grid}>
                             {exams.map((exam) => (
-                                <div key={exam.id} className={styles.card}>
-                                    <h3>{exam.title}</h3>
-                                    <p className={styles.meta}>
-                                        <Clock size={14} /> {exam.timeLimit} minutes
-                                    </p>
-                                    {exam.description && (
-                                        <p className={styles.description}>{exam.description}</p>
-                                    )}
-                                    <button
-                                        onClick={() => handleStartExam(exam.id)}
-                                        className="btn btn-primary"
-                                        style={{ marginTop: '16px' }}
-                                    >
-                                        <Play size={16} /> Start Exam
-                                    </button>
-                                </div>
+                                <ExamCard 
+                                    key={exam.id} 
+                                    exam={exam} 
+                                    onStart={handleStartExam} 
+                                />
                             ))}
                         </div>
                     )}
@@ -128,7 +158,7 @@ export default function DashboardPage() {
                 {/* Past Attempts */}
                 <section className={styles.section}>
                     <h2>Your Attempts</h2>
-                    {attempts.length === 0 ? (
+                    {!attempts || attempts.length === 0 ? (
                         <p className={styles.empty}>You haven't taken any exams yet.</p>
                     ) : (
                         <div className={styles.table}>
@@ -188,4 +218,65 @@ function getStatusColor(status: string) {
         case 'GRADING': return 'info';
         default: return 'info';
     }
+}
+
+// Separate component to use hooks for each exam
+function ExamCard({ exam, onStart }: { exam: Exam; onStart: (id: string) => void }) {
+    const scheduleStatus = useExamScheduleStatus(
+        exam.scheduledStartAt || null,
+        exam.scheduledEndAt || null
+    );
+
+    const isEnded = scheduleStatus === 'ended';
+    const isBeforeStart = scheduleStatus === 'before_start';
+    const canStart = !isEnded && !isBeforeStart;
+
+    return (
+        <div className={styles.card}>
+            <h3>{exam.title}</h3>
+            <p className={styles.meta}>
+                <Clock size={14} /> {exam.timeLimit} minutes
+            </p>
+            {exam.description && (
+                <p className={styles.description}>{exam.description}</p>
+            )}
+            
+            {/* Show scheduling info if applicable */}
+            {(exam.scheduledStartAt || exam.scheduledEndAt) && (
+                <div style={{ marginTop: '12px' }}>
+                    <ExamCountdown
+                        scheduledStartAt={exam.scheduledStartAt || null}
+                        scheduledEndAt={exam.scheduledEndAt || null}
+                        timezone={exam.timezone || 'Asia/Kolkata'}
+                    />
+                </div>
+            )}
+            
+            <button
+                onClick={() => onStart(exam.id)}
+                className="btn btn-primary"
+                style={{ marginTop: '16px' }}
+                disabled={!canStart}
+                title={
+                    isEnded 
+                        ? 'Exam has ended' 
+                        : isBeforeStart 
+                            ? 'Exam has not started yet' 
+                            : undefined
+                }
+            >
+                {isEnded ? (
+                    'Exam Ended'
+                ) : isBeforeStart ? (
+                    <>
+                        <Calendar size={16} /> Starts Soon
+                    </>
+                ) : (
+                    <>
+                        <Play size={16} /> Start Exam
+                    </>
+                )}
+            </button>
+        </div>
+    );
 }
