@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { eq, and, like, count, desc, asc } from 'drizzle-orm';
 import { exams, challenges, examInvitations, examAttempts } from '@exam-platform/database';
-import { createExamSchema, updateExamSchema } from '@exam-platform/shared';
+import { createExamSchema, updateExamSchema, PartialRunnerConfig } from '@exam-platform/shared';
 import { db } from '../lib/db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { ApiError } from '../middleware/errorHandler.js';
@@ -459,18 +459,7 @@ router.post('/:id/warm-pool', authenticate, requireRole('ADMIN'), async (req, re
         }
 
         // Extract runner config for warmup (including generatedFiles!)
-        const runner = exam.challenge.runner as {
-            mode?: string;
-            runtime?: string;
-            candidate?: { 
-                image?: string;
-                generatedFiles?: Record<string, string>;
-                installCommand?: string;
-            };
-            tests?: {
-                image?: string;
-            };
-        } | null;
+        const runner = exam.challenge.runner as PartialRunnerConfig;
         
         // Manual warmup default: keep it small & fast unless explicitly overridden by the UI.
         const defaultPoolSize = { testRunners: 2, candidates: 2 };

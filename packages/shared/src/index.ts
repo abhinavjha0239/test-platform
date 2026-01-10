@@ -128,6 +128,23 @@ f         * (e.g. auto-generating package.json for runtime="node"). The HTTP bla
 
 export type ChallengeRunner = z.infer<typeof challengeRunnerSchema>;
 
+/**
+ * Partial runner configuration type for pool warming and runtime checks.
+ * This represents a subset of ChallengeRunner properties needed for container pool management.
+ */
+export type PartialRunnerConfig = {
+    mode?: string;
+    runtime?: string;
+    candidate?: {
+        image?: string;
+        generatedFiles?: Record<string, string>;
+        installCommand?: string;
+    };
+    tests?: {
+        image?: string;
+    };
+} | null;
+
 export const createChallengeSchema = z.object({
     name: z.string().min(3, 'Name must be at least 3 characters'),
     description: z.string().optional(),

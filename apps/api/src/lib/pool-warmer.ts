@@ -8,6 +8,7 @@
 
 import { db } from './db.js';
 import { exams } from '@exam-platform/database';
+import { PartialRunnerConfig } from '@exam-platform/shared';
 import { eq } from 'drizzle-orm';
 import { redisConnection } from './redis.js';
 import {
@@ -381,18 +382,7 @@ export async function getExamsNeedingWarmup(): Promise<Array<{
         const isWarm = await isExamPoolWarm(exam.id);
         if (!isWarm) {
             // Extract runner config for image and other settings
-            const runner = exam.challenge.runner as {
-                mode?: string;
-                runtime?: string;
-                candidate?: {
-                    image?: string;
-                    generatedFiles?: Record<string, string>;
-                    installCommand?: string;
-                };
-                tests?: {
-                    image?: string;
-                };
-            } | null;
+            const runner = exam.challenge.runner as PartialRunnerConfig;
             
             needsWarmup.push({
                 id: exam.id,
