@@ -27,6 +27,11 @@ let tokenUnsubscribe: (() => void) | null = null;
 const activeAttemptIds = new Set<string>();
 
 /**
+ * Ensure socket listeners are only registered once per socket instance
+ */
+let socketListenersAttached = false;
+
+/**
  * API URL for Socket.IO connection
  */
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -49,6 +54,7 @@ function rejoinActiveAttempts(reason: string): void {
         socket?.emit('attempt:join', attemptId, (response: any) => {
             if (!response?.success) {
                 console.warn(`🔌 Failed to rejoin attempt ${attemptId} after ${reason}:`, response?.error);
+                activeAttemptIds.delete(attemptId);
             }
         });
     });
@@ -98,9 +104,6 @@ export function getSocket(): Socket {
                 if (!hasToken && socket.connected) {
                     // Token was cleared, disconnect
                     socket.disconnect();
-                    activeAttemptIds.clear();
-                } else if (!hasToken) {
-                    activeAttemptIds.clear();
                 } else if (hasToken && !socket.connected) {
                     // New token available, can reconnect if needed
                     // (reconnection will be triggered by the component that needs it)
@@ -140,17 +143,22 @@ export function getSocket(): Socket {
         });
     }
 
-    socket.on('connect', () => {
-        rejoinActiveAttempts('connect');
-    });
+    if (!socketListenersAttached) {
+        socket.on('connect', () => {
+            rejoinActiveAttempts('connect');
+        });
 
-    socket.on('reconnect', () => {
-        rejoinActiveAttempts('reconnect');
-    });
+        socket.on('reconnect', () => {
+            rejoinActiveAttempts('reconnect');
+        });
 
-    socket.on('reconnect_error', (error) => {
-        console.error('🔌 Socket reconnect error:', error.message);
-    });
+        if (process.env.NODE_ENV === 'development') {
+            socket.on('reconnect_error', (error) => {
+                console.error('🔌 Socket reconnect error:', error.message);
+            });
+        }
+        socketListenersAttached = true;
+    }
     
     return socket;
 }
@@ -170,10 +178,10 @@ export function connectToExam(attemptId: string): Promise<{
 }> {
     return new Promise((resolve, reject) => {
         const socket = getSocket();
-        activeAttemptIds.add(attemptId);
         
         // Set a timeout for the connection
         const timeout = setTimeout(() => {
+            activeAttemptIds.delete(attemptId);
             reject(new Error('Connection timeout'));
         }, 15000);
         
@@ -181,6 +189,7 @@ export function connectToExam(attemptId: string): Promise<{
             clearTimeout(timeout);
             socket.emit('attempt:join', attemptId, (response: any) => {
                 if (response.success) {
+                    activeAttemptIds.add(attemptId);
                     resolve(response);
                 } else {
                     activeAttemptIds.delete(attemptId);
@@ -192,6 +201,7 @@ export function connectToExam(attemptId: string): Promise<{
         const handleError = (error: Error) => {
             clearTimeout(timeout);
             socket.off('connect', handleConnect);
+            activeAttemptIds.delete(attemptId);
             reject(error);
         };
         
@@ -223,12 +233,14 @@ export function disconnectSocket(): void {
         socket.removeAllListeners();
         socket.disconnect();
         socket = null;
+        socketListenersAttached = false;
     }
     
     if (tokenUnsubscribe) {
         tokenUnsubscribe();
         tokenUnsubscribe = null;
     }
+    activeAttemptIds.clear();
 }
 
 /**
