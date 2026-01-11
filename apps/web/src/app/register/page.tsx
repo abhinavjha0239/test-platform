@@ -13,7 +13,7 @@ export default function RegisterPage() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState<'CANDIDATE' | 'ADMIN'>('CANDIDATE');
+    const [role, setRole] = useState<'CANDIDATE' | 'ADMIN' | 'REVIEWER'>('CANDIDATE');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -21,7 +21,8 @@ export default function RegisterPage() {
 
         try {
             await register(email, password, name, role);
-            router.push(role === 'ADMIN' ? '/admin' : '/dashboard');
+            // Admins and Reviewers go to admin panel, Candidates go to dashboard
+            router.push(role === 'CANDIDATE' ? '/dashboard' : '/admin');
         } catch (err) {
             // Error handled by store
         }
@@ -81,8 +82,9 @@ export default function RegisterPage() {
 
                     <div className={styles.field}>
                         <label htmlFor="role">I am a</label>
-                        <select id="role" value={role} onChange={(e) => setRole(e.target.value as any)}>
+                        <select id="role" value={role} onChange={(e) => setRole(e.target.value as 'CANDIDATE' | 'ADMIN' | 'REVIEWER')}>
                             <option value="CANDIDATE">Candidate (taking exams)</option>
+                            <option value="REVIEWER">Reviewer (reviewing results)</option>
                             <option value="ADMIN">Admin (creating exams)</option>
                         </select>
                     </div>

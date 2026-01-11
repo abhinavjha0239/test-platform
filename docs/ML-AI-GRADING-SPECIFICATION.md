@@ -2,7 +2,7 @@
 
 > **Comprehensive Guide for Machine Learning, Deep Learning, Computer Vision, and Applied AI Challenge Assessment**
 
-**Version:** 1.0  
+**Version:** 1.1
 **Last Updated:** January 5, 2026  
 **Status:** Draft Specification
 

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { examAttempts } from '@exam-platform/database';
 import { db } from './db.js';
+import { sanitizeLogs, sanitizeError } from './log-sanitizer.js';
 import type { GradingResult } from '@exam-platform/shared';
 
 /**
@@ -14,12 +15,16 @@ export async function updateAttemptResults(
     result: GradingResult,
     isPreview: boolean = false
 ) {
+    // Sanitize logs to prevent hidden test code leakage
+    const sanitizedLogs = sanitizeLogs(result.logs, isPreview);
+    const sanitizedError = result.error ? sanitizeError(result.error) : undefined;
+
     const updateData: Record<string, unknown> = {
         publicScore: result.publicScore,
         hiddenScore: result.hiddenScore,
         totalPublic: result.totalPublic,
         totalHidden: result.totalHidden,
-        gradingLogs: result.logs,
+        gradingLogs: sanitizedLogs,
         gradedAt: new Date(),
     };
 
@@ -34,5 +39,11 @@ export async function updateAttemptResults(
 
     const modeLabel = isPreview ? '(preview)' : '(final)';
     console.log(`✅ Attempt ${attemptId} graded ${modeLabel}: ${result.publicScore}/${result.totalPublic} public, ${result.hiddenScore}/${result.totalHidden} hidden`);
+    
+    // Return sanitized result for WebSocket broadcast
+    return {
+        ...result,
+        logs: sanitizedLogs,
+        error: sanitizedError,
+    };
 }
-

@@ -56,8 +56,8 @@ export default function ExamResultPage() {
 
     const loadResult = async () => {
         try {
-            const { data } = await api.getAttempt(attemptId);
-            setResult(data);
+            const attempt = await api.getAttempt(attemptId);
+            setResult(attempt);
         } catch (error) {
             console.error('Failed to load result:', error);
         } finally {

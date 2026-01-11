@@ -3,10 +3,12 @@ import type { ApiResponse } from '@exam-platform/shared';
 
 export class ApiError extends Error {
     statusCode: number;
+    metadata?: Record<string, unknown>;
 
-    constructor(message: string, statusCode: number = 500) {
+    constructor(message: string, statusCode: number = 500, metadata?: Record<string, unknown>) {
         super(message);
         this.statusCode = statusCode;
+        this.metadata = metadata;
         this.name = 'ApiError';
     }
 }
@@ -17,12 +19,14 @@ export function errorHandler(
     res: Response<ApiResponse>,
     next: NextFunction
 ) {
-    console.error('Error:', err);
+    // Safe error logging
+    console.error('Error:', err?.message || 'Unknown error', err?.name || '');
 
     if (err instanceof ApiError) {
         return res.status(err.statusCode).json({
             success: false,
             error: err.message,
+            ...err.metadata, // Include scheduling info for frontend
         });
     }
 

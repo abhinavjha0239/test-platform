@@ -7,6 +7,7 @@
   --bg-active: #094771;
   
   --border-color: #3c3c3c;
+  --border: #3c3c3c;
   --border-active: #007acc;
   
   --text-primary: #cccccc;
@@ -215,4 +216,55 @@ input:focus, textarea:focus, select:focus {
 
 .animate-slideUp {
   animation: slideUp 0.3s ease;
+}
+
+/* Spinner animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Additional button variants */
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 16px;
+}
+
+.btn-success:hover {
+  background: #388e3c;
+}
+
+/* Table styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table th,
+table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--bg-tertiary);
+}
+
+table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 122, 204, 0.3);
 }

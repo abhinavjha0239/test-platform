@@ -17,7 +17,8 @@ export default function HomePage() {
 
     useEffect(() => {
         if (user) {
-            router.push(user.role === 'ADMIN' ? '/admin' : '/dashboard');
+            // Admins and Reviewers go to admin panel, Candidates go to dashboard
+            router.push(user.role === 'CANDIDATE' ? '/dashboard' : '/admin');
         }
     }, [user, router]);
 

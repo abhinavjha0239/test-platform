@@ -41,20 +41,24 @@ router.get('/exam/:examId', authenticate, requireRole('ADMIN', 'REVIEWER'), asyn
             return totalTests > 0 && (passedTests / totalTests) >= exam.passThreshold;
         });
 
+        // FIX: Return numbers instead of % strings to match API type expectations
+        const passRateNum = completedAttempts.length > 0
+            ? (passedAttempts.length / completedAttempts.length) * 100
+            : null;
+        const averageScoreNum = completedAttempts.length > 0
+            ? completedAttempts.reduce((sum, a) => {
+                const total = (a.totalPublic || 0) + (a.totalHidden || 0);
+                const passed = (a.publicScore || 0) + (a.hiddenScore || 0);
+                return sum + (total > 0 ? (passed / total) * 100 : 0);
+            }, 0) / completedAttempts.length
+            : null;
+            
         const stats = {
             totalAttempts: attempts.length,
             completedAttempts: completedAttempts.length,
             passedAttempts: passedAttempts.length,
-            passRate: completedAttempts.length > 0
-                ? (passedAttempts.length / completedAttempts.length * 100).toFixed(1) + '%'
-                : 'N/A',
-            averageScore: completedAttempts.length > 0
-                ? (completedAttempts.reduce((sum, a) => {
-                    const total = (a.totalPublic || 0) + (a.totalHidden || 0);
-                    const passed = (a.publicScore || 0) + (a.hiddenScore || 0);
-                    return sum + (total > 0 ? passed / total * 100 : 0);
-                }, 0) / completedAttempts.length).toFixed(1) + '%'
-                : 'N/A',
+            passRate: passRateNum !== null ? Math.round(passRateNum * 10) / 10 : null,
+            averageScore: averageScoreNum !== null ? Math.round(averageScoreNum * 10) / 10 : null,
         };
 
         // Integrity summary per attempt

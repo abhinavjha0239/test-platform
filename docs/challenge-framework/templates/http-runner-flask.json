@@ -1,0 +1,25 @@
+{
+  "mode": "http",
+  "runtime": "python",
+  "candidate": {
+    "image": "python:3.11-slim",
+    "workdir": "/app",
+    "generatedFiles": {
+      "requirements.txt": "flask==3.0.3\n"
+    },
+    "installCommand": "pip install -r requirements.txt",
+    "runCommand": "python app.py",
+    "port": 3000,
+    "healthPath": "/health",
+    "startupTimeoutMs": 30000
+  },
+  "tests": {
+    "framework": "jest",
+    "image": "node:20-alpine",
+    "installCommand": "npm install --legacy-peer-deps 2>&1",
+    "testCommand": "npm test 2>&1 || true",
+    "timeoutMs": 120000
+  }
+}
+
+

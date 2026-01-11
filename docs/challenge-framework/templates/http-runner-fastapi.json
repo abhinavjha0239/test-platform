@@ -1,0 +1,25 @@
+{
+  "mode": "http",
+  "runtime": "python",
+  "candidate": {
+    "image": "python:3.11-slim",
+    "workdir": "/app",
+    "generatedFiles": {
+      "requirements.txt": "fastapi==0.115.5\nuvicorn==0.32.1\n"
+    },
+    "installCommand": "pip install -r requirements.txt",
+    "runCommand": "python -m uvicorn main:app --host 0.0.0.0 --port $PORT",
+    "port": 3000,
+    "healthPath": "/health",
+    "startupTimeoutMs": 30000
+  },
+  "tests": {
+    "framework": "jest",
+    "image": "node:20-alpine",
+    "installCommand": "npm install --legacy-peer-deps 2>&1",
+    "testCommand": "npm test 2>&1 || true",
+    "timeoutMs": 120000
+  }
+}
+
+

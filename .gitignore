@@ -6,5 +6,23 @@ dist
 .env
 .env.local
 .env*.local
+.env.production
 coverage
 .DS_Store
+
+# Challenge solutions (private - not for candidates)
+challenges/_solutions/
+
+# Production backups
+backups/
+
+# SSL certificates (managed by certbot)
+certbot/
+
+# IDE
+.vscode
+.idea
+
+# Build cache
+*.tsbuildinfo
+.eslintcache

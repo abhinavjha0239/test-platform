@@ -1,0 +1,129 @@
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.required {
+    color: var(--error);
+    margin-left: 2px;
+}
+
+.input,
+.textarea,
+.select {
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.15);
+}
+
+.inputError {
+    border-color: var(--error);
+}
+
+.inputError:focus {
+    border-color: var(--error);
+    box-shadow: 0 0 0 3px rgba(244, 71, 71, 0.15);
+}
+
+.textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+}
+
+.hint {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.error {
+    font-size: 12px;
+    color: var(--error);
+}
+
+.checkboxWrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    transition: border-color 0.15s ease;
+}
+
+.checkboxWrapper:hover {
+    border-color: var(--accent-blue);
+}
+
+.checkbox {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--accent-blue);
+    flex-shrink: 0;
+}
+
+.checkboxContent {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.checkboxLabel {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.checkboxDesc {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.formGroup {
+    display: grid;
+    grid-template-columns: repeat(var(--columns, 1), 1fr);
+    gap: 16px;
+}
+
+.formActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 24px;
+    margin-top: 24px;
+    border-top: 1px solid var(--border);
+}
+
+

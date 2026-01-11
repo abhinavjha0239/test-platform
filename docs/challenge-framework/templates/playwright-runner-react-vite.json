@@ -1,0 +1,26 @@
+{
+  "mode": "playwright",
+  "runtime": "react",
+  "candidate": {
+    "image": "node:20-alpine",
+    "workdir": "/app",
+    "generatedFiles": {
+      "package.json": "{\n  \"name\": \"candidate-react-app\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"vite build\",\n    \"preview\": \"vite preview\"\n  },\n  \"dependencies\": {\n    \"react\": \"^18.3.1\",\n    \"react-dom\": \"^18.3.1\"\n  },\n  \"devDependencies\": {\n    \"vite\": \"^5.4.10\",\n    \"@vitejs/plugin-react\": \"^4.3.3\"\n  }\n}\n",
+      "vite.config.js": "import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\n\nexport default defineConfig({\n  plugins: [react()],\n  server: {\n    host: '0.0.0.0',\n    port: parseInt(process.env.PORT || '3000'),\n    strictPort: true,\n    allowedHosts: ['candidate', 'localhost'],\n  },\n});\n"
+    },
+    "installCommand": "npm install --legacy-peer-deps 2>&1",
+    "runCommand": "npm run dev",
+    "port": 3000,
+    "healthPath": "/",
+    "startupTimeoutMs": 45000
+  },
+  "tests": {
+    "framework": "playwright",
+    "image": "mcr.microsoft.com/playwright:v1.57.0-jammy",
+    "installCommand": "npm install 2>&1",
+    "testCommand": "PLAYWRIGHT_JUNIT_OUTPUT_NAME=results.xml npx playwright test --reporter=junit 2>&1",
+    "timeoutMs": 180000
+  }
+}
+
+
