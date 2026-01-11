@@ -179,14 +179,12 @@ export function connectToExam(attemptId: string): Promise<{
     return new Promise((resolve, reject) => {
         const socket = getSocket();
         
-        // Set a timeout for the connection
-        const timeout = setTimeout(() => {
-            activeAttemptIds.delete(attemptId);
-            reject(new Error('Connection timeout'));
-        }, 15000);
+        // Declare timeout variable first so it can be referenced in handlers
+        let timeout: ReturnType<typeof setTimeout>;
         
         const handleConnect = () => {
             clearTimeout(timeout);
+            socket.off('connect_error', handleError);
             socket.emit('attempt:join', attemptId, (response: any) => {
                 if (response.success) {
                     activeAttemptIds.add(attemptId);
@@ -201,11 +199,21 @@ export function connectToExam(attemptId: string): Promise<{
         const handleError = (error: Error) => {
             clearTimeout(timeout);
             socket.off('connect', handleConnect);
+            socket.off('connect_error', handleError);
             activeAttemptIds.delete(attemptId);
             reject(error);
         };
         
+        // Set a timeout for the connection
+        timeout = setTimeout(() => {
+            socket.off('connect', handleConnect);
+            socket.off('connect_error', handleError);
+            activeAttemptIds.delete(attemptId);
+            reject(new Error('Connection timeout'));
+        }, 15000);
+        
         if (socket.connected) {
+            clearTimeout(timeout);
             handleConnect();
         } else {
             socket.once('connect', handleConnect);
