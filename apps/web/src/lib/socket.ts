@@ -51,6 +51,7 @@ function rejoinActiveAttempts(reason: string): void {
                 console.warn(`🔌 Failed to rejoin attempt ${attemptId} after ${reason}:`, response?.error);
                 // Remove failed attempt from set to prevent repeated rejoin attempts
                 activeAttemptIds.delete(attemptId);
+                console.log(`🔌 Removed attempt ${attemptId} from tracking set due to rejoin failure`);
             }
         });
     });
@@ -200,6 +201,7 @@ export function connectToExam(attemptId: string): Promise<{
             clearTimeout(timeout);
             socket.off('connect', handleConnect);
             activeAttemptIds.delete(attemptId);
+            console.log(`🔌 Removed attempt ${attemptId} from tracking set due to connection error`);
             reject(error);
         };
         
