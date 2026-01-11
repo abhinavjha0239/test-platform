@@ -26,7 +26,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { createHash } from 'crypto';
 import { Mutex } from 'async-mutex';
-import { redisConnection } from './redis.js';
+import { redisConnection } from '../redis.js';
 
 // ============ Types ============
 

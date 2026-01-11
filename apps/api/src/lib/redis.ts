@@ -1,4 +1,5 @@
-import Redis from 'ioredis';
+import * as IORedis from 'ioredis';
+const Redis = (IORedis as any).default || IORedis;
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
@@ -77,6 +78,7 @@ export const REDIS_CHANNELS = {
     GRADING_COMPLETE: 'grading:complete',
     PROCTOR_EVENT: 'proctor:event',
     TIMER_SYNC: 'timer:sync',
+    POOL_WARMUP: 'pool:warmup',
 } as const;
 
 /**

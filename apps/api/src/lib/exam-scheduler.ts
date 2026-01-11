@@ -2,22 +2,24 @@
  * Exam Scheduler Service
  * 
  * Background service that:
- * 1. Auto-warms container pools 15 minutes before exam start
+ * 1. Auto-warms container pools 15 minutes before exam start (via grader service)
  * 2. Auto-submits IN_PROGRESS attempts when scheduled end time is reached
  * 
  * Features:
  * - Polls every 30 seconds
  * - Uses Redis distributed lock to prevent duplicate processing
  * - Gracefully handles missed end times
+ * 
+ * NOTE: Pool warming is now handled by the grader microservice (apps/grader).
+ * This scheduler publishes warmup requests via Redis.
  */
 
-import { eq } from 'drizzle-orm';
+import { eq, and, lte, gte, isNotNull } from 'drizzle-orm';
 import { db } from './db.js';
 import { exams, examAttempts } from '@exam-platform/database';
-import { redisConnection } from './redis.js';
+import { redisConnection, redisPublisher, REDIS_CHANNELS } from './redis.js';
 import { addGradingJob } from './grading.js';
 import { flushToDatabase, getFromBuffer } from './autosave-buffer.js';
-import { runAutoWarmup } from './pool-warmer.js';
 import type { Server } from 'socket.io';
 
 // Scheduler configuration
@@ -88,14 +90,36 @@ async function runSchedulerCycle(): Promise<void> {
 
     try {
         // === Auto-warmup for upcoming exams ===
-        // Warms container pools 15 minutes before exam start
+        // Publishes warmup request to grader service via Redis
         try {
-            const warmedCount = await runAutoWarmup();
-            if (warmedCount > 0) {
-                console.log(`🔥 Auto-warmed pools for ${warmedCount} upcoming exam(s)`);
+            // Find exams starting in the next 15 minutes
+            const now = new Date();
+            const fifteenMinutesLater = new Date(now.getTime() + 15 * 60 * 1000);
+
+            const upcomingExams = await db.query.exams.findMany({
+                where: and(
+                    isNotNull(exams.scheduledStartAt),
+                    gte(exams.scheduledStartAt, now),
+                    lte(exams.scheduledStartAt, fifteenMinutesLater)
+                ),
+                with: { challenge: true },
+            });
+
+            if (upcomingExams.length > 0) {
+                // Publish warmup request to grader service
+                await redisPublisher.publish(
+                    REDIS_CHANNELS.POOL_WARMUP,
+                    JSON.stringify({
+                        examIds: upcomingExams.map(e => e.id),
+                        dependencies: upcomingExams
+                            .filter(e => e.challenge)
+                            .map(e => e.challenge!.dependencies),
+                    })
+                );
+                console.log(`🔥 Requested warmup for ${upcomingExams.length} upcoming exam(s)`);
             }
         } catch (warmupError) {
-            console.error('❌ Auto-warmup error:', warmupError);
+            console.error('❌ Auto-warmup request error:', warmupError);
             // Continue with auto-submit even if warmup fails
         }
 

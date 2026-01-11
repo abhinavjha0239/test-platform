@@ -6,10 +6,10 @@
  * or manually via admin API.
  */
 
-import { db } from './db.js';
+import { db } from '../db.js';
 import { exams } from '@exam-platform/database';
 import { eq } from 'drizzle-orm';
-import { redisConnection } from './redis.js';
+import { redisConnection } from '../redis.js';
 import {
     getTestRunnerPool,
     getCandidatePool,

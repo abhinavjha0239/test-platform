@@ -3,9 +3,10 @@
  * 
  * Validates challenges before they can be published.
  * Ensures tests are comprehensive, isolated, and don't have loopholes.
+ * 
+ * NOTE: Actual grading is handled by the grader microservice (apps/grader).
+ * This validator performs static checks only.
  */
-
-import { runLocalGrader } from './local-grader.js';
 
 /**
  * Validation result
@@ -107,17 +108,17 @@ export async function validateChallenge(challenge: ChallengeToValidate): Promise
 
     // 5. Check for common test quality issues
     const allTests = (challenge.publicTests || '') + '\n' + (challenge.hiddenTests || '');
-    
+
     // Check for hardcoded values (potential loopholes)
     const hasHardcodedIds = /expect\([^)]+\)\.toEqual\(\s*['"][\w-]{8,}['"]\s*\)/g.test(allTests);
     if (hasHardcodedIds) {
         warnings.push('Tests may contain hardcoded IDs - consider using dynamic data');
     }
-    
+
     // Check for random/unique test data
-    const usesRandomData = allTests.includes('Date.now()') || 
-                           allTests.includes('Math.random()') || 
-                           allTests.includes('uuid');
+    const usesRandomData = allTests.includes('Date.now()') ||
+        allTests.includes('Math.random()') ||
+        allTests.includes('uuid');
     checks.push({
         name: 'Dynamic test data',
         passed: usesRandomData,
@@ -125,71 +126,27 @@ export async function validateChallenge(challenge: ChallengeToValidate): Promise
     });
 
     // 6. Check for proper Express app import pattern
-    const usesAppRequire = allTests.includes("require('../src/app')") || 
-                           allTests.includes('require("../src/app")');
+    const usesAppRequire = allTests.includes("require('../src/app')") ||
+        allTests.includes('require("../src/app")');
     if (!usesAppRequire) {
         warnings.push('Tests should import app from ../src/app for consistency');
     }
 
-    // 7. Run starter files against tests (should fail)
+    // 7. Runtime validation (grading starter and solution files)
+    // NOTE: Runtime validation has been moved to the grader microservice (apps/grader).
+    // To validate a challenge with actual grading:
+    // 1. Save the challenge to the database
+    // 2. Queue a grading job via the API
+    // 3. Check the results
+    // For now, we skip runtime validation and rely on static checks.
     if (challenge.solutionFiles && Object.keys(challenge.solutionFiles).length > 0) {
-        try {
-            // Test starter files - should have some failures
-            const starterResult = await runLocalGrader({
-                attemptId: 'validation-starter',
-                files: challenge.starterFiles,
-                publicTests: challenge.publicTests,
-                hiddenTests: challenge.hiddenTests,
-                dependencies: challenge.dependencies,
-                nodeVersion: challenge.nodeVersion,
-                timeLimit: 60,
-                memoryLimit: 512,
-            });
-
-            const totalStarterPassed = starterResult.publicScore + starterResult.hiddenScore;
-            const totalTests = starterResult.totalPublic + starterResult.totalHidden;
-            
-            if (totalStarterPassed === totalTests) {
-                errors.push('Starter files pass all tests! This defeats the purpose of the challenge.');
-            } else if (starterResult.publicScore === starterResult.totalPublic) {
-                warnings.push('Starter files pass all public tests. Consider making some public tests fail initially.');
-            }
-
-            checks.push({
-                name: 'Starter fails tests',
-                passed: totalStarterPassed < totalTests,
-                message: `Starter files: ${totalStarterPassed}/${totalTests} tests pass`,
-            });
-
-            // Test solution files - should pass all
-            const solutionResult = await runLocalGrader({
-                attemptId: 'validation-solution',
-                files: challenge.solutionFiles,
-                publicTests: challenge.publicTests,
-                hiddenTests: challenge.hiddenTests,
-                dependencies: challenge.dependencies,
-                nodeVersion: challenge.nodeVersion,
-                timeLimit: 60,
-                memoryLimit: 512,
-            });
-
-            const totalSolutionPassed = solutionResult.publicScore + solutionResult.hiddenScore;
-            
-            if (totalSolutionPassed !== totalTests) {
-                errors.push(`Solution files fail ${totalTests - totalSolutionPassed} tests! Fix your solution or tests.`);
-            }
-
-            checks.push({
-                name: 'Solution passes tests',
-                passed: totalSolutionPassed === totalTests,
-                message: `Solution files: ${totalSolutionPassed}/${totalTests} tests pass`,
-            });
-
-        } catch (error) {
-            warnings.push(`Could not validate against solution: ${error}`);
-        }
+        checks.push({
+            name: 'Solution files provided',
+            passed: true,
+            message: 'Solution files available for manual validation',
+        });
     } else {
-        warnings.push('No solution files provided for validation. Consider adding them for thorough testing.');
+        warnings.push('No solution files provided. Consider adding them for thorough testing.');
     }
 
     return {
@@ -217,7 +174,7 @@ export function quickValidate(challenge: ChallengeToValidate): ValidationResult 
     // Test isolation check
     const publicHasIsolation = challenge.publicTests?.includes('jest.resetModules()') ?? false;
     const hiddenHasIsolation = challenge.hiddenTests?.includes('jest.resetModules()') ?? false;
-    
+
     if (!publicHasIsolation) warnings.push('Add jest.resetModules() to public tests');
     if (challenge.hiddenTests && !hiddenHasIsolation) warnings.push('Add jest.resetModules() to hidden tests');
 

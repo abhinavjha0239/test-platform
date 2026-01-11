@@ -3,7 +3,7 @@ import { mkdir, rm, writeFile, readFile, chmod } from 'fs/promises';
 import { dirname, join, resolve } from 'path';
 import { tmpdir } from 'os';
 import type { ChallengeRunner, GradingJob, GradingResult } from '@exam-platform/shared';
-import { acquireNetworkWithRetry, releaseNetwork } from './network-pool.js';
+import { acquireNetworkWithRetry, releaseNetwork } from '../pool/network-pool.js';
 import {
     acquireBlackboxContainer,
     releaseBlackboxContainer,
@@ -11,7 +11,7 @@ import {
     releaseTestRunner,
     type BlackboxContainer,
     type TestRunnerContainer,
-} from './blackbox-pool-manager.js';
+} from '../pool/blackbox-pool-manager.js';
 
 interface TestRunResult {
     passed: number;
@@ -133,7 +133,7 @@ async function writeCandidateWorkspace(params: {
     for (const [path, content] of Object.entries(files)) {
         const safePath = sanitizeFilePath(path, workDir);
         if (!safePath) continue;
-        await mkdir(dirname(safePath), { recursive: true }).catch(() => {});
+        await mkdir(dirname(safePath), { recursive: true }).catch(() => { });
         await writeFile(safePath, content as string);
         filesWritten++;
     }
@@ -145,7 +145,7 @@ async function writeCandidateWorkspace(params: {
             if (!safePath.startsWith(resolve(workDir) + '/')) {
                 throw new Error(`Invalid generated file path: ${path}`);
             }
-            await mkdir(dirname(safePath), { recursive: true }).catch(() => {});
+            await mkdir(dirname(safePath), { recursive: true }).catch(() => { });
             await writeFile(safePath, content);
         }
     }
@@ -244,7 +244,7 @@ async function writeVitestUiHarness(params: {
 function parseJUnit(xml: string): { total: number; failures: number; errors: number; skipped: number } {
     // IMPORTANT: use `\b` word boundary (not a literal backslash), otherwise we won't match `<testsuite ...>` tags.
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/96ef93a5-f48d-498e-b9a7-fe6968539886',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'ui_jsdom_debug_pre',hypothesisId:'H1',location:'docker-ui-jsdom-grader.ts:parseJUnit',message:'parseJUnit input overview',data:{xmlLen:xml?.length||0,startsWith:typeof xml==='string'?xml.slice(0,80):null,hasTestsuiteTag:typeof xml==='string'?xml.includes('<testsuite'):false,hasTestsuitesTag:typeof xml==='string'?xml.includes('<testsuites'):false},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/96ef93a5-f48d-498e-b9a7-fe6968539886', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'debug-session', runId: 'ui_jsdom_debug_pre', hypothesisId: 'H1', location: 'docker-ui-jsdom-grader.ts:parseJUnit', message: 'parseJUnit input overview', data: { xmlLen: xml?.length || 0, startsWith: typeof xml === 'string' ? xml.slice(0, 80) : null, hasTestsuiteTag: typeof xml === 'string' ? xml.includes('<testsuite') : false, hasTestsuitesTag: typeof xml === 'string' ? xml.includes('<testsuites') : false }, timestamp: Date.now() }) }).catch(() => { });
     // #endregion
     const suiteTagMatches = [...xml.matchAll(/<testsuite\b[^>]*>/g)];
     if (suiteTagMatches.length === 0) return { total: 0, failures: 0, errors: 0, skipped: 0 };
@@ -268,7 +268,7 @@ function parseJUnit(xml: string): { total: number; failures: number; errors: num
     }
 
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/96ef93a5-f48d-498e-b9a7-fe6968539886',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'ui_jsdom_debug_pre',hypothesisId:'H2',location:'docker-ui-jsdom-grader.ts:parseJUnit',message:'parseJUnit computed totals',data:{suiteTags:suiteTagMatches.length,total,failures,errors,skipped,firstSuiteTag:suiteTagMatches[0]?.[0]?.slice(0,120)||null},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/96ef93a5-f48d-498e-b9a7-fe6968539886', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'debug-session', runId: 'ui_jsdom_debug_pre', hypothesisId: 'H2', location: 'docker-ui-jsdom-grader.ts:parseJUnit', message: 'parseJUnit computed totals', data: { suiteTags: suiteTagMatches.length, total, failures, errors, skipped, firstSuiteTag: suiteTagMatches[0]?.[0]?.slice(0, 120) || null }, timestamp: Date.now() }) }).catch(() => { });
     // #endregion
     return { total, failures, errors, skipped };
 }
@@ -332,12 +332,12 @@ async function parseVitestResults(workDir: string, logs: string): Promise<TestRu
     }
 
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/96ef93a5-f48d-498e-b9a7-fe6968539886',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'ui_jsdom_debug_pre',hypothesisId:'H3',location:'docker-ui-jsdom-grader.ts:parseVitestResults',message:'Read results.xml from host workspace',data:{junitLen:junit.length,startsWith:junit.slice(0,80),includesTestsuite:junit.includes('<testsuite'),includesTestsuites:junit.includes('<testsuites')},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/96ef93a5-f48d-498e-b9a7-fe6968539886', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'debug-session', runId: 'ui_jsdom_debug_pre', hypothesisId: 'H3', location: 'docker-ui-jsdom-grader.ts:parseVitestResults', message: 'Read results.xml from host workspace', data: { junitLen: junit.length, startsWith: junit.slice(0, 80), includesTestsuite: junit.includes('<testsuite'), includesTestsuites: junit.includes('<testsuites') }, timestamp: Date.now() }) }).catch(() => { });
     // #endregion
     const { total, failures, errors, skipped } = parseJUnit(junit);
     if (total === 0) {
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/96ef93a5-f48d-498e-b9a7-fe6968539886',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'ui_jsdom_debug_pre',hypothesisId:'H4',location:'docker-ui-jsdom-grader.ts:parseVitestResults',message:'No tests detected after parseJUnit',data:{junitHead:junit.slice(0,300)},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/96ef93a5-f48d-498e-b9a7-fe6968539886', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'debug-session', runId: 'ui_jsdom_debug_pre', hypothesisId: 'H4', location: 'docker-ui-jsdom-grader.ts:parseVitestResults', message: 'No tests detected after parseJUnit', data: { junitHead: junit.slice(0, 300) }, timestamp: Date.now() }) }).catch(() => { });
         // #endregion
         return {
             passed: 0,
@@ -352,7 +352,7 @@ async function parseVitestResults(workDir: string, logs: string): Promise<TestRu
     const success = failures === 0 && errors === 0;
 
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/96ef93a5-f48d-498e-b9a7-fe6968539886',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'ui_jsdom_debug_pre',hypothesisId:'H5',location:'docker-ui-jsdom-grader.ts:parseVitestResults',message:'Parsed JUnit totals',data:{passed,total,failures,errors,skipped,success},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/96ef93a5-f48d-498e-b9a7-fe6968539886', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'debug-session', runId: 'ui_jsdom_debug_pre', hypothesisId: 'H5', location: 'docker-ui-jsdom-grader.ts:parseVitestResults', message: 'Parsed JUnit totals', data: { passed, total, failures, errors, skipped, success }, timestamp: Date.now() }) }).catch(() => { });
     // #endregion
     return { passed, total, logs: sanitizeLogs(logs), success };
 }
@@ -465,7 +465,7 @@ async function runUiJsdomPhaseWithPool(params: {
 
         const resetProbe = await probeHarnessReset({ containerName: pooledContainer.name, port });
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/96ef93a5-f48d-498e-b9a7-fe6968539886',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'ui_jsdom_post_harness_fix',hypothesisId:'H_harness_reset',location:'docker-ui-jsdom-grader.ts:runUiJsdomPhaseWithPool',message:'Harness reset probe after health',data:{container:pooledContainer.name,port,healthPath,healthDebug:healthDebug?.slice(0,200)||null,resetOk:resetProbe.ok,resetStatus:resetProbe.statusCode,resetBodyHead:resetProbe.bodyHead},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/96ef93a5-f48d-498e-b9a7-fe6968539886', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: 'debug-session', runId: 'ui_jsdom_post_harness_fix', hypothesisId: 'H_harness_reset', location: 'docker-ui-jsdom-grader.ts:runUiJsdomPhaseWithPool', message: 'Harness reset probe after health', data: { container: pooledContainer.name, port, healthPath, healthDebug: healthDebug?.slice(0, 200) || null, resetOk: resetProbe.ok, resetStatus: resetProbe.statusCode, resetBodyHead: resetProbe.bodyHead }, timestamp: Date.now() }) }).catch(() => { });
         // #endregion
         if (!resetProbe.ok) {
             const harnessTail = await dockerExec({
@@ -477,7 +477,7 @@ async function runUiJsdomPhaseWithPool(params: {
                 total: 1,
                 success: false,
                 logs: sanitizeLogs(
-                    `${logs}\n\n[HealthProbe]\n${healthDebug}\n\n[HarnessProbe]\n/reset failed (status=${resetProbe.statusCode}) body=${resetProbe.bodyHead}\n\n[HarnessLogTail]\n${harnessTail}`
+                    `[HealthProbe]\n${healthDebug}\n\n[HarnessProbe]\n/reset failed (status=${resetProbe.statusCode}) body=${resetProbe.bodyHead}\n\n[HarnessLogTail]\n${harnessTail}`
                 ),
             };
         }
@@ -504,10 +504,10 @@ async function runUiJsdomPhaseWithPool(params: {
             for (const [path, content] of Object.entries(job.files || {})) {
                 const safePath = sanitizeFilePath(path, candidateCopyDir);
                 if (!safePath) continue;
-                await mkdir(dirname(safePath), { recursive: true }).catch(() => {});
+                await mkdir(dirname(safePath), { recursive: true }).catch(() => { });
                 await writeFile(safePath, content as string);
             }
-            await chmod(candidateCopyDir, 0o755).catch(() => {});
+            await chmod(candidateCopyDir, 0o755).catch(() => { });
             await dockerExec({
                 args: ['cp', candidateCopyDir, `${testRunner.name}:/app/`],
                 timeoutMs: 15000,
@@ -559,13 +559,13 @@ async function runUiJsdomPhaseWithPool(params: {
         await dockerExec({
             args: ['network', 'disconnect', networkName, testRunner.name],
             timeoutMs: 5000,
-        }).catch(() => {});
+        }).catch(() => { });
 
         // Copy results back
         await dockerExec({
             args: ['cp', `${testRunner.name}:/app/results.xml`, testsDir + '/results.xml'],
             timeoutMs: 5000,
-        }).catch(() => {});
+        }).catch(() => { });
 
         const output = [
             '[HealthProbe]',
@@ -582,22 +582,22 @@ async function runUiJsdomPhaseWithPool(params: {
             await dockerExec({
                 args: ['network', 'disconnect', networkName, pooledContainer.name],
                 timeoutMs: 5000,
-            }).catch(() => {});
+            }).catch(() => { });
         }
 
         if (networkName) {
-            await releaseNetwork(networkName).catch(() => {});
+            await releaseNetwork(networkName).catch(() => { });
         }
 
         if (testRunner) {
-            await releaseTestRunner(testRunner).catch(() => {});
+            await releaseTestRunner(testRunner).catch(() => { });
         }
 
         if (pooledContainer) {
-            await releaseBlackboxContainer(pooledContainer).catch(() => {});
+            await releaseBlackboxContainer(pooledContainer).catch(() => { });
         }
 
-        await rm(testsDir, { recursive: true, force: true }).catch(() => {});
+        await rm(testsDir, { recursive: true, force: true }).catch(() => { });
     }
 }
 
