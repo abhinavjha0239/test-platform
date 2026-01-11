@@ -22,9 +22,37 @@ let socket: Socket | null = null;
 let tokenUnsubscribe: (() => void) | null = null;
 
 /**
+ * Track active attempt IDs for reconnection
+ */
+const activeAttemptIds = new Set<string>();
+
+/**
  * API URL for Socket.IO connection
  */
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+function rejoinActiveAttempts(reason: string): void {
+    if (!socket || !socket.connected) {
+        return;
+    }
+
+    if (activeAttemptIds.size === 0) {
+        return;
+    }
+
+    const token = api.getToken();
+    if (!token) {
+        return;
+    }
+
+    activeAttemptIds.forEach((attemptId) => {
+        socket?.emit('attempt:join', attemptId, (response: any) => {
+            if (!response?.success) {
+                console.warn(`🔌 Failed to rejoin attempt ${attemptId} after ${reason}:`, response?.error);
+            }
+        });
+    });
+}
 
 /**
  * Get or create Socket.IO client instance
@@ -70,9 +98,15 @@ export function getSocket(): Socket {
                 if (!hasToken && socket.connected) {
                     // Token was cleared, disconnect
                     socket.disconnect();
+                    activeAttemptIds.clear();
+                } else if (!hasToken) {
+                    activeAttemptIds.clear();
                 } else if (hasToken && !socket.connected) {
                     // New token available, can reconnect if needed
                     // (reconnection will be triggered by the component that needs it)
+                    if (activeAttemptIds.size > 0) {
+                        socket.connect();
+                    }
                 }
             }
         });
@@ -105,6 +139,18 @@ export function getSocket(): Socket {
             console.error('🔌 Socket reconnection failed');
         });
     }
+
+    socket.on('connect', () => {
+        rejoinActiveAttempts('connect');
+    });
+
+    socket.on('reconnect', () => {
+        rejoinActiveAttempts('reconnect');
+    });
+
+    socket.on('reconnect_error', (error) => {
+        console.error('🔌 Socket reconnect error:', error.message);
+    });
     
     return socket;
 }
@@ -124,6 +170,7 @@ export function connectToExam(attemptId: string): Promise<{
 }> {
     return new Promise((resolve, reject) => {
         const socket = getSocket();
+        activeAttemptIds.add(attemptId);
         
         // Set a timeout for the connection
         const timeout = setTimeout(() => {
@@ -136,6 +183,7 @@ export function connectToExam(attemptId: string): Promise<{
                 if (response.success) {
                     resolve(response);
                 } else {
+                    activeAttemptIds.delete(attemptId);
                     reject(new Error(response.error || 'Failed to join exam'));
                 }
             });
@@ -164,6 +212,7 @@ export function leaveExam(attemptId: string): void {
     if (socket) {
         socket.emit('attempt:leave', attemptId);
     }
+    activeAttemptIds.delete(attemptId);
 }
 
 /**
