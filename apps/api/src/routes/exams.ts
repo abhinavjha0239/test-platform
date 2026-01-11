@@ -436,60 +436,20 @@ router.delete('/:id', authenticate, requireRole('ADMIN'), async (req, res, next)
 });
 
 // ============ Container Pool Management Endpoints ============
-
-import { warmPoolForExam, getExamWarmupStatus } from '../lib/pool-warmer.js';
-import { getPoolStatus, resizePool, drainAllPools } from '../lib/container-pool.js';
+// NOTE: Pool management has been moved to the grader microservice (apps/grader).
+// These endpoints are kept for API compatibility but now return guidance messages.
 
 /**
  * POST /api/exams/:id/warm-pool
- * Manually warm the container pool for an exam
+ * Pool warming is now handled by grader service via Redis pub/sub
  */
 router.post('/:id/warm-pool', authenticate, requireRole('ADMIN'), async (req, res, next) => {
     try {
-        const { id } = req.params;
-        const { poolSize } = req.body as { poolSize?: { testRunners?: number; candidates?: number } };
-
-        const exam = await db.query.exams.findFirst({
-            where: eq(exams.id, id),
-            with: { challenge: true },
+        res.json({
+            success: true,
+            message: 'Pool warming is now handled automatically by the grader service. Warmup is triggered 15 minutes before scheduled exam start.',
+            data: { service: 'grader', channel: 'pool:warmup' },
         });
-
-        if (!exam) {
-            throw new ApiError('Exam not found', 404);
-        }
-
-        // Extract runner config for warmup (including generatedFiles!)
-        const runner = exam.challenge.runner as {
-            mode?: string;
-            runtime?: string;
-            candidate?: { 
-                image?: string;
-                generatedFiles?: Record<string, string>;
-                installCommand?: string;
-            };
-            tests?: {
-                image?: string;
-            };
-        } | null;
-        
-        // Manual warmup default: keep it small & fast unless explicitly overridden by the UI.
-        const defaultPoolSize = { testRunners: 2, candidates: 2 };
-        const customPoolSize = poolSize ?? defaultPoolSize;
-
-        const result = await warmPoolForExam({
-            examId: exam.id,
-            expectedCandidates: (exam as unknown as { expectedCandidates?: number }).expectedCandidates || 100,
-            runnerMode: runner?.mode,
-            runtime: runner?.runtime || 'node',
-            challengeDependencies: (exam.challenge.dependencies || {}) as Record<string, string>,
-            candidateImage: runner?.candidate?.image,
-            testsImage: runner?.tests?.image,
-            generatedFiles: runner?.candidate?.generatedFiles,  // <-- Pass generatedFiles!
-            installCommand: runner?.candidate?.installCommand,   // <-- Pass installCommand!
-            customPoolSize,
-        });
-
-        res.json({ success: true, data: result });
     } catch (error) {
         next(error);
     }
@@ -497,13 +457,15 @@ router.post('/:id/warm-pool', authenticate, requireRole('ADMIN'), async (req, re
 
 /**
  * GET /api/exams/:id/warmup-status
- * Get warmup status for an exam
+ * Pool status should be queried from grader service
  */
 router.get('/:id/warmup-status', authenticate, requireRole('ADMIN'), async (req, res, next) => {
     try {
-        const { id } = req.params;
-        const status = await getExamWarmupStatus(id);
-        res.json({ success: true, data: status });
+        res.json({
+            success: true,
+            message: 'Pool status is now managed by the grader service.',
+            data: { service: 'grader' },
+        });
     } catch (error) {
         next(error);
     }
@@ -511,12 +473,15 @@ router.get('/:id/warmup-status', authenticate, requireRole('ADMIN'), async (req,
 
 /**
  * GET /api/pool/status
- * Get all container pool statistics
+ * Pool status should be queried from grader service
  */
 router.get('/pool/status', authenticate, requireRole('ADMIN'), async (req, res, next) => {
     try {
-        const status = getPoolStatus();
-        res.json({ success: true, data: status });
+        res.json({
+            success: true,
+            message: 'Pool status is now managed by the grader service.',
+            data: { service: 'grader' },
+        });
     } catch (error) {
         next(error);
     }
@@ -524,31 +489,15 @@ router.get('/pool/status', authenticate, requireRole('ADMIN'), async (req, res, 
 
 /**
  * POST /api/pool/resize
- * Resize container pools
+ * Pool resizing should be done via grader service
  */
 router.post('/pool/resize', authenticate, requireRole('ADMIN'), async (req, res, next) => {
     try {
-        const { testRunners, candidates, runtime } = req.body as {
-            testRunners?: number;
-            candidates?: number;
-            runtime?: string;
-        };
-
-        // Validate input
-        if (testRunners !== undefined && (testRunners < 1 || testRunners > 200)) {
-            throw new ApiError('testRunners must be between 1 and 200', 400);
-        }
-        if (candidates !== undefined && (candidates < 1 || candidates > 200)) {
-            throw new ApiError('candidates must be between 1 and 200', 400);
-        }
-
-        const result = await resizePool({
-            testRunners,
-            candidates,
-            runtime: runtime || 'node',
+        res.json({
+            success: true,
+            message: 'Pool resizing is now managed by the grader service.',
+            data: { service: 'grader' },
         });
-
-        res.json({ success: true, data: result });
     } catch (error) {
         next(error);
     }
@@ -556,15 +505,19 @@ router.post('/pool/resize', authenticate, requireRole('ADMIN'), async (req, res,
 
 /**
  * DELETE /api/pool/drain
- * Drain and destroy all container pools
+ * Pool draining should be done via grader service
  */
 router.delete('/pool/drain', authenticate, requireRole('ADMIN'), async (req, res, next) => {
     try {
-        await drainAllPools();
-        res.json({ success: true, message: 'All pools drained' });
+        res.json({
+            success: true,
+            message: 'Pool draining is now managed by the grader service.',
+            data: { service: 'grader' },
+        });
     } catch (error) {
         next(error);
     }
 });
 
 export default router;
+

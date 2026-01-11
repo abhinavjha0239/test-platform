@@ -7,10 +7,9 @@ import { closeGradingQueue } from './lib/grading.js';
 import { stopAllLocalTimers } from './socket/timerService.js';
 import { startBackgroundFlush, gracefulShutdown as flushShutdown } from './lib/autosave-buffer.js';
 import { startExamScheduler, stopExamScheduler } from './lib/exam-scheduler.js';
-import { initializePoolSystem, drainAllPools, cleanupIdlePools } from './lib/container-pool.js';
-import { initializeNetworkPool, drainNetworkPool } from './lib/network-pool.js';
-import { initializeCache } from './lib/dependency-cache.js';
-import { initializeBlackboxPool, drainBlackboxPools, cleanupIdleBlackboxPools } from './lib/blackbox-pool-manager.js';
+
+// NOTE: Pool management has been moved to the grader microservice (apps/grader).
+// This API server now only handles HTTP requests and WebSocket connections.
 
 const PORT = process.env.PORT || 3001;
 
@@ -25,28 +24,6 @@ startBackgroundFlush();
 
 // Start exam scheduler (monitors scheduled end times)
 startExamScheduler(io);
-
-// Initialize container pool system (cleanup orphaned containers)
-initializePoolSystem().catch(console.error);
-
-// Initialize network pool for blackbox/playwright grading
-initializeNetworkPool().catch(console.error);
-
-// Initialize blackbox container pool
-initializeBlackboxPool().catch(console.error);
-
-// Initialize dependency cache
-initializeCache().catch(console.error);
-
-// Start periodic pool cleanup (EC-11, EC-15)
-setInterval(() => {
-    cleanupIdlePools().catch(err => {
-        console.error('[Pool] Idle cleanup failed:', err);
-    });
-    cleanupIdleBlackboxPools().catch(err => {
-        console.error('[BlackboxPool] Idle cleanup failed:', err);
-    });
-}, 60 * 60 * 1000); // Every hour
 
 // Start server
 httpServer.listen(PORT, () => {
@@ -76,15 +53,6 @@ const gracefulShutdown = async (signal: string) => {
 
         // Close Socket.IO
         await closeSocket();
-
-        // Drain container pools
-        await drainAllPools();
-
-        // Drain blackbox pools
-        await drainBlackboxPools();
-
-        // Drain network pool
-        await drainNetworkPool();
 
         // Close grading queue
         await closeGradingQueue();

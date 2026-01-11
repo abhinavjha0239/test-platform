@@ -3,8 +3,8 @@ import { mkdir, rm, writeFile, readFile } from 'fs/promises';
 import { dirname, join, resolve } from 'path';
 import { tmpdir } from 'os';
 import type { ChallengeRunner, GradingJob, GradingResult } from '@exam-platform/shared';
-import { acquireNetworkWithRetry, releaseNetwork } from './network-pool.js';
-import { acquireBlackboxContainer, releaseBlackboxContainer, type BlackboxContainer } from './blackbox-pool-manager.js';
+import { acquireNetworkWithRetry, releaseNetwork } from '../pool/network-pool.js';
+import { acquireBlackboxContainer, releaseBlackboxContainer, type BlackboxContainer } from '../pool/blackbox-pool-manager.js';
 
 interface TestRunResult {
     passed: number;

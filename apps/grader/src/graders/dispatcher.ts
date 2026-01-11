@@ -3,10 +3,11 @@ import { writeFile, mkdir, rm, readFile, chmod } from 'fs/promises';
 import { join, dirname, resolve } from 'path';
 import { tmpdir } from 'os';
 import type { GradingJob, GradingResult } from '@exam-platform/shared';
-import { runDockerBlackboxGrader } from './docker-blackbox-grader.js';
-import { runDockerPlaywrightGrader } from './docker-playwright-grader.js';
-import { runDockerUiJsdomGrader } from './docker-ui-jsdom-grader.js';
-import { getTestRunnerPool, isPoolWarmForDeps } from './container-pool.js';
+import { runDockerBlackboxGrader } from './http-grader.js';
+import { runDockerPlaywrightGrader } from './playwright-grader.js';
+import { runDockerUiJsdomGrader } from './ui-jsdom-grader.js';
+import { getTestRunnerPool, isPoolWarmForDeps } from '../pool/container-pool.js';
+
 
 /**
  * Docker-based Grader (Production Recommended)
