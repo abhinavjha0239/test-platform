@@ -22,9 +22,43 @@ let socket: Socket | null = null;
 let tokenUnsubscribe: (() => void) | null = null;
 
 /**
+ * Track active attempt IDs for reconnection
+ */
+const activeAttemptIds = new Set<string>();
+
+/**
+ * Ensure socket listeners are only registered once per socket instance
+ */
+let socketListenersAttached = false;
+
+/**
  * API URL for Socket.IO connection
  */
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+function rejoinActiveAttempts(reason: string): void {
+    if (!socket || !socket.connected) {
+        return;
+    }
+
+    if (activeAttemptIds.size === 0) {
+        return;
+    }
+
+    const token = api.getToken();
+    if (!token) {
+        return;
+    }
+
+    activeAttemptIds.forEach((attemptId) => {
+        socket?.emit('attempt:join', attemptId, (response: any) => {
+            if (!response?.success) {
+                console.warn(`🔌 Failed to rejoin attempt ${attemptId} after ${reason}:`, response?.error);
+                activeAttemptIds.delete(attemptId);
+            }
+        });
+    });
+}
 
 /**
  * Get or create Socket.IO client instance
@@ -73,6 +107,9 @@ export function getSocket(): Socket {
                 } else if (hasToken && !socket.connected) {
                     // New token available, can reconnect if needed
                     // (reconnection will be triggered by the component that needs it)
+                    if (activeAttemptIds.size > 0) {
+                        socket.connect();
+                    }
                 }
             }
         });
@@ -105,6 +142,23 @@ export function getSocket(): Socket {
             console.error('🔌 Socket reconnection failed');
         });
     }
+
+    if (!socketListenersAttached) {
+        socket.on('connect', () => {
+            rejoinActiveAttempts('connect');
+        });
+
+        socket.on('reconnect', () => {
+            rejoinActiveAttempts('reconnect');
+        });
+
+        if (process.env.NODE_ENV === 'development') {
+            socket.on('reconnect_error', (error) => {
+                console.error('🔌 Socket reconnect error:', error.message);
+            });
+        }
+        socketListenersAttached = true;
+    }
     
     return socket;
 }
@@ -125,17 +179,18 @@ export function connectToExam(attemptId: string): Promise<{
     return new Promise((resolve, reject) => {
         const socket = getSocket();
         
-        // Set a timeout for the connection
-        const timeout = setTimeout(() => {
-            reject(new Error('Connection timeout'));
-        }, 15000);
+        // Declare timeout variable first so it can be referenced in handlers
+        let timeout: ReturnType<typeof setTimeout>;
         
         const handleConnect = () => {
             clearTimeout(timeout);
+            socket.off('connect_error', handleError);
             socket.emit('attempt:join', attemptId, (response: any) => {
                 if (response.success) {
+                    activeAttemptIds.add(attemptId);
                     resolve(response);
                 } else {
+                    activeAttemptIds.delete(attemptId);
                     reject(new Error(response.error || 'Failed to join exam'));
                 }
             });
@@ -144,10 +199,21 @@ export function connectToExam(attemptId: string): Promise<{
         const handleError = (error: Error) => {
             clearTimeout(timeout);
             socket.off('connect', handleConnect);
+            socket.off('connect_error', handleError);
+            activeAttemptIds.delete(attemptId);
             reject(error);
         };
         
+        // Set a timeout for the connection
+        timeout = setTimeout(() => {
+            socket.off('connect', handleConnect);
+            socket.off('connect_error', handleError);
+            activeAttemptIds.delete(attemptId);
+            reject(new Error('Connection timeout'));
+        }, 15000);
+        
         if (socket.connected) {
+            clearTimeout(timeout);
             handleConnect();
         } else {
             socket.once('connect', handleConnect);
@@ -164,6 +230,7 @@ export function leaveExam(attemptId: string): void {
     if (socket) {
         socket.emit('attempt:leave', attemptId);
     }
+    activeAttemptIds.delete(attemptId);
 }
 
 /**
@@ -174,12 +241,14 @@ export function disconnectSocket(): void {
         socket.removeAllListeners();
         socket.disconnect();
         socket = null;
+        socketListenersAttached = false;
     }
     
     if (tokenUnsubscribe) {
         tokenUnsubscribe();
         tokenUnsubscribe = null;
     }
+    activeAttemptIds.clear();
 }
 
 /**
