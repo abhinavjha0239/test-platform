@@ -145,18 +145,19 @@ export function getSocket(): Socket {
         socket.on('reconnect_failed', () => {
             console.error('🔌 Socket reconnection failed');
         });
+        
+        socket.on('reconnect_error', (error) => {
+            console.error('🔌 Socket reconnect error:', error.message);
+        });
     }
 
-    socket.on('connect', () => {
+    // Register rejoin handlers once per socket instance
+    socket.once('connect', () => {
         rejoinActiveAttempts('connect');
     });
 
     socket.on('reconnect', () => {
         rejoinActiveAttempts('reconnect');
-    });
-
-    socket.on('reconnect_error', (error) => {
-        console.error('🔌 Socket reconnect error:', error.message);
     });
     
     return socket;
@@ -181,6 +182,9 @@ export function connectToExam(attemptId: string): Promise<{
         
         // Set a timeout for the connection
         const timeout = setTimeout(() => {
+            socket.off('connect', handleConnect);
+            socket.off('connect_error', handleError);
+            activeAttemptIds.delete(attemptId);
             reject(new Error('Connection timeout'));
         }, 15000);
         
@@ -239,6 +243,9 @@ export function disconnectSocket(): void {
         tokenUnsubscribe();
         tokenUnsubscribe = null;
     }
+    
+    // Clear active attempt tracking to prevent stale reconnections
+    activeAttemptIds.clear();
 }
 
 /**
