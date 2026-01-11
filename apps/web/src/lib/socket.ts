@@ -49,6 +49,8 @@ function rejoinActiveAttempts(reason: string): void {
         socket?.emit('attempt:join', attemptId, (response: any) => {
             if (!response?.success) {
                 console.warn(`🔌 Failed to rejoin attempt ${attemptId} after ${reason}:`, response?.error);
+                // Remove failed attempt from set to prevent repeated rejoin attempts
+                activeAttemptIds.delete(attemptId);
             }
         });
     });
@@ -89,28 +91,32 @@ export function getSocket(): Socket {
     });
 
     // Subscribe to token changes to update socket auth
-    if (!tokenUnsubscribe) {
-        tokenUnsubscribe = api.onTokenChange((hasToken) => {
-            if (socket) {
-                const newToken = api.getToken();
-                socket.auth = { token: newToken };
-                
-                if (!hasToken && socket.connected) {
-                    // Token was cleared, disconnect
-                    socket.disconnect();
-                    activeAttemptIds.clear();
-                } else if (!hasToken) {
-                    activeAttemptIds.clear();
-                } else if (hasToken && !socket.connected) {
-                    // New token available, can reconnect if needed
-                    // (reconnection will be triggered by the component that needs it)
-                    if (activeAttemptIds.size > 0) {
-                        socket.connect();
-                    }
+    // Clean up any existing subscription first to prevent memory leaks
+    if (tokenUnsubscribe) {
+        tokenUnsubscribe();
+        tokenUnsubscribe = null;
+    }
+    
+    tokenUnsubscribe = api.onTokenChange((hasToken) => {
+        if (socket) {
+            const newToken = api.getToken();
+            socket.auth = { token: newToken };
+            
+            if (!hasToken && socket.connected) {
+                // Token was cleared, disconnect
+                socket.disconnect();
+                activeAttemptIds.clear();
+            } else if (!hasToken) {
+                activeAttemptIds.clear();
+            } else if (hasToken && !socket.connected) {
+                // New token available, can reconnect if needed
+                // (reconnection will be triggered by the component that needs it)
+                if (activeAttemptIds.size > 0) {
+                    socket.connect();
                 }
             }
-        });
-    }
+        }
+    });
 
     // Log connection events in development
     if (process.env.NODE_ENV === 'development') {
@@ -179,6 +185,7 @@ export function connectToExam(attemptId: string): Promise<{
         
         const handleConnect = () => {
             clearTimeout(timeout);
+            socket.off('connect_error', handleError);
             socket.emit('attempt:join', attemptId, (response: any) => {
                 if (response.success) {
                     resolve(response);
@@ -192,6 +199,7 @@ export function connectToExam(attemptId: string): Promise<{
         const handleError = (error: Error) => {
             clearTimeout(timeout);
             socket.off('connect', handleConnect);
+            activeAttemptIds.delete(attemptId);
             reject(error);
         };
         
