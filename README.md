@@ -1,126 +1,132 @@
-# Node/Express Exam Platform
+# Universal Exam & Grading Platform
 
-A secure, cheat-resistant online exam platform for evaluating Node.js and Express.js skills.
+> **A production-grade, cheat-resistant assessment ecosystem for Web, AI/ML, Web3, and Cloud Engineering.**
 
-## Features
+Designed for high-stakes technical evaluations, this platform provides secure, isolated, and deterministic grading across diverse technology stacks. It leverages a spot-instance architecture for cost-effective horizontal scaling and supports complex challenge types from full-stack web apps to deep learning model training.
 
-- 🎯 **Fair Evaluation**: Hidden tests with randomized inputs prevent hardcoding
-- 🔒 **Cheat Resistance**: Tab/focus tracking, fullscreen monitoring, paste disabled
-- ⚡ **Fast Grading**: Docker-isolated test execution with results in seconds
-- 📊 **Detailed Reports**: Score breakdown, integrity summary, and proctoring events
+---
 
-## Tech Stack
+## 🚀 Key Capabilities
 
-- **Frontend**: Next.js 14, React, Monaco Editor, Zustand
-- **Backend**: Express.js, TypeScript
-- **Database**: PostgreSQL (Supabase) + Drizzle ORM
-- **Grading**: Docker containers with network isolation
+### 1. Multi-Paradigm Grading Engine
+Support for diverse technical domains with specialized runner modes:
 
-## Project Structure
+- **Web Development**:
+  - **Backend**: Node.js, Python (FastAPI/Django), Go, Rust, Java.
+  - **Frontend**: React (Vite/CRA), Vue.js with Playwright E2E testing.
+  - **Database**: PostgreSQL, MongoDB with isolated or shared instances.
+
+- **AI/ML & Data Science**:
+  - **Training**: PyTorch, TensorFlow, Scikit-learn with GPU support.
+  - **Inference**: Model deployment and API testing.
+  - **Computer Vision**: OpenCV, image processing challenges.
+  - **Jupyter**: Notebook execution and cell-based grading.
+
+- **Web3 & Blockchain**:
+  - **Solana**: Anchor framework, native Rust, BPF bytecode analysis.
+  - **Ethereum**: Solidity smart contracts via Foundry.
+  - **NEAR/Substrate**: WASM-based contract evaluation.
+
+- **DevOps & Cloud**:
+  - **Docker**: Container orchestration and Dockerfile linting.
+  - **Kubernetes**: Manifest validation and cluster simulation.
+  - **CI/CD**: GitHub Actions workflow analysis.
+
+### 2. Enterprise-Grade Architecture
+Built for reliability and scale:
+
+- **Spot-Instance Native**: Auto-scaling worker fleet on AWS Spot Instances (90% cost savings).
+- **Event-Driven Core**: Redis Streams for reliable job queuing and processing.
+- **Fault Tolerance**: Automatic retries, dead-letter queues, and graceful interruption handling.
+- **Real-Time Feedback**: WebSocket-based progress streaming to candidates.
+
+### 3. Advanced Security & Integrity
+Defense-in-depth security model:
+
+- **Network Isolation**: Containers run with `--network none` (internal-only).
+- **Filesystem Lockdown**: Read-only root FS, ephemeral tmpfs, no host access.
+- **Hidden Tests**: Randomized test values in a separate, unmounted container.
+- **Proctoring Suite**: Fullscreen enforcement, tab-switch tracking, copy-paste disabled.
+
+---
+
+## 🛠 Tech Stack
+
+- **Frontend**: Next.js 14, React, Monaco Editor, Tailwind CSS, Zustand
+- **Backend**: Express.js, TypeScript, Node.js
+- **Database**: PostgreSQL (Supabase/RDS) + Drizzle ORM
+- **Infrastructure**: Docker, Redis (Streams/PubSub), AWS EC2 (Spot)
+
+---
+
+## 📂 Project Structure
 
 ```
 exam-platform/
 ├── apps/
-│   ├── web/         # Next.js frontend
-│   └── api/         # Express.js backend
+│   ├── web/           # Next.js candidate & admin dashboard
+│   ├── api/           # Central API gateway & orchestration
+│   └── grader-go/     # High-performance grading worker (Go)
 ├── packages/
-│   ├── database/    # Drizzle schema & migrations
-│   └── shared/      # Shared types & validation
-├── challenges/      # Exam challenges (starter code + tests)
-└── docker-compose.yml
+│   ├── database/      # Shared Drizzle schema & migrations
+│   ├── shared/        # Shared Zod types & utilities
+│   └── logger/        # Structured logging
+├── challenges/        # Challenge definitions & test suites
+├── docs/              # Comprehensive architecture documentation
+└── docker-compose.yml # Local development orchestration
 ```
 
-## Quick Start
+---
+
+## ⚡ Quick Start
 
 ### Prerequisites
-
 - Node.js 20+
-- Docker (for grading)
-- PostgreSQL (or use Supabase)
+- Docker (Desktop or Engine)
+- PostgreSQL (or Supabase)
+- Redis
 
 ### Setup
 
-1. **Clone and install dependencies:**
+1. **Clone and Install:**
    ```bash
-   cd exam-platform
+   git clone https://github.com/your-org/exam-platform.git
    npm install
    ```
 
-2. **Configure environment:**
+2. **Environment Configuration:**
    ```bash
    cp .env.example .env
-   # Edit .env with your database credentials
+   # Update DATABASE_URL and REDIS_URL in .env
    ```
 
-3. **Push database schema:**
+3. **Database Setup:**
    ```bash
-   npm run db:push
+   npm run db:push    # Push schema
+   npm run db:seed    # Seed initial exams
    ```
 
-4. **Seed sample data:**
+4. **Start Services:**
    ```bash
-   cd packages/database
-   npx tsx seed.ts
+   docker-compose up -d redis postgres  # Start infra
+   npm run dev                          # Start apps
    ```
 
-5. **Start development servers:**
-   ```bash
-   npm run dev
-   ```
+   - **Web**: http://localhost:3000
+   - **API**: http://localhost:3001
 
-   This starts:
-   - Frontend: http://localhost:3000
-   - API: http://localhost:3001
+---
 
-### Default Credentials
+## 📖 Documentation
 
-- **Admin**: admin@examplatform.com / admin123
+Detailed specifications available in `/docs`:
+- [Grading System Overview](docs/GRADING-SYSTEM-OVERVIEW.md)
+- [Spot Scalable Grader Architecture](docs/grader/07-SPOT-SCALABLE-GRADER-PRD.md)
+- [ML/AI Grading Spec](docs/ML-AI-GRADING-SPECIFICATION.md)
+- [Web3 Grading Spec](docs/WEB3-GRADING-SPECIFICATION.md)
 
-## API Endpoints
+---
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/auth/register` | POST | Register new user |
-| `/api/auth/login` | POST | Login |
-| `/api/exams` | GET/POST | List/Create exams |
-| `/api/attempts` | POST | Start exam attempt |
-| `/api/attempts/:id/submit` | POST | Submit for grading |
-| `/api/proctor/event` | POST | Log proctoring event |
-| `/api/reports/exam/:id` | GET | Exam report |
+## 🛡 License
 
-## Environment Variables
-
-```env
-# Database
-DATABASE_URL=postgresql://...
-
-# Supabase (optional)
-NEXT_PUBLIC_SUPABASE_URL=https://...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-
-# JWT
-JWT_SECRET=your-secret-key
-
-# Ports
-API_PORT=3001
-```
-
-## Proctoring Features
-
-The platform logs (without storing clipboard content):
-- **Tab exits**: When candidate switches to another tab/app
-- **Fullscreen exits**: When candidate exits fullscreen mode
-- **Paste attempts**: When paste is attempted (content replaced with placeholder)
-- **Time out-of-window**: Total seconds spent outside the exam window
-
-## Grading System
-
-Tests run in Docker containers with:
-- `--network none`: No internet access
-- Memory/CPU limits
-- Time limits
-- Isolated filesystem
-
-## License
-
-MIT
+MIT © 2026 Exam Platform Team
