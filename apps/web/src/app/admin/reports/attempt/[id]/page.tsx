@@ -1,15 +1,25 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { AdminLayout } from '@/components/admin';
 import { CodeEditor, Skeleton, useToast } from '@/components/ui';
 import { useQuery } from '@/hooks';
 import { api } from '@/lib/api';
-import { 
+import {
     User, Clock, FileText, AlertTriangle, CheckCircle, XCircle,
-    Eye, EyeOff, Clipboard, Maximize2, Timer
+    Eye, EyeOff, Clipboard, Maximize2, Timer, Camera, X, ChevronLeft, ChevronRight,
+    Keyboard, Activity
 } from 'lucide-react';
 import styles from './report.module.css';
+
+interface Screenshot {
+    filename: string;
+    url: string;
+    eventType: string;
+    capturedAt: string;
+    size: number;
+}
 
 interface AttemptReport {
     id: string;
@@ -41,14 +51,78 @@ interface AttemptReport {
     files?: Record<string, string>;
 }
 
+interface KeystrokeData {
+    stats: {
+        totalKeystrokes: number;
+        lastWpm: number;
+        lastCpm: number;
+        sessionDuration: number;
+    };
+    typingSpeed: {
+        avgWpm: number;
+        avgCpm: number;
+        peakWpm: number;
+        history: Array<{ wpm: number; cpm: number; ts: number }>;
+    };
+}
+
 export default function AttemptReportPage() {
     const params = useParams();
     const attemptId = params.id as string;
+    const [selectedFile, setSelectedFile] = useState<string>('');
+    const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
+    const [selectedScreenshotIdx, setSelectedScreenshotIdx] = useState<number | null>(null);
+    const [keystrokeData, setKeystrokeData] = useState<KeystrokeData | null>(null);
 
     const { data: report, isLoading, error } = useQuery<AttemptReport>(
         () => api.getAttemptReport(attemptId),
         { enabled: !!attemptId }
     );
+
+    // Fetch screenshots
+    useEffect(() => {
+        if (!attemptId) return;
+
+        fetch(`/api/attempts/${attemptId}/screenshots`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.data?.screenshots) {
+                    setScreenshots(data.data.screenshots);
+                }
+            })
+            .catch(console.error);
+    }, [attemptId]);
+
+    // Fetch keystroke data
+    useEffect(() => {
+        if (!attemptId) return;
+
+        fetch(`/api/proctor/keystrokes/${attemptId}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    setKeystrokeData(data.data);
+                }
+            })
+            .catch(console.error);
+    }, [attemptId]);
+
+    const fileEntries = Object.entries(report?.files || {});
+
+    // Update selected file when report loads
+    useEffect(() => {
+        if (fileEntries.length > 0 && !selectedFile) {
+            setSelectedFile(fileEntries[0][0]);
+        }
+    }, [report?.files]);
 
     if (isLoading) {
         return (
@@ -123,9 +197,27 @@ export default function AttemptReportPage() {
         return 'var(--text-muted)';
     };
 
-    const fileEntries = Object.entries(report.files || {});
-    const mainFile = fileEntries.find(([path]) => path.includes('index') || path.includes('main'));
-    const displayFile = mainFile || fileEntries[0];
+    // Get the content of the selected file
+    const selectedFileContent = report.files?.[selectedFile] || '';
+
+    // Detect language from file extension
+    const getLanguage = (filename: string) => {
+        const ext = filename.split('.').pop()?.toLowerCase();
+        switch (ext) {
+            case 'sql': return 'sql';
+            case 'js': return 'javascript';
+            case 'ts': return 'typescript';
+            case 'tsx': return 'typescript';
+            case 'jsx': return 'javascript';
+            case 'py': return 'python';
+            case 'go': return 'go';
+            case 'rs': return 'rust';
+            case 'json': return 'json';
+            case 'html': return 'html';
+            case 'css': return 'css';
+            default: return 'plaintext';
+        }
+    };
 
     return (
         <AdminLayout
@@ -149,7 +241,7 @@ export default function AttemptReportPage() {
                             <span className={styles.scoreLabel}>Score</span>
                         </div>
                     </div>
-                    
+
                     <div className={styles.headerMeta}>
                         <div className={styles.metaItem}>
                             <User size={16} />
@@ -231,7 +323,7 @@ export default function AttemptReportPage() {
                         <div className={styles.timeline}>
                             {report.proctorEvents.slice(0, 50).map((event) => (
                                 <div key={event.id} className={styles.timelineItem}>
-                                    <div 
+                                    <div
                                         className={styles.timelineIcon}
                                         style={{ color: getEventColor(event.eventType) }}
                                     >
@@ -257,21 +349,152 @@ export default function AttemptReportPage() {
                     )}
                 </div>
 
+                {/* Typing Speed Visualization */}
+                {keystrokeData && (keystrokeData.typingSpeed.history.length > 0 || keystrokeData.stats.totalKeystrokes > 0) && (
+                    <div className={styles.card}>
+                        <h3 className={styles.cardTitle}>
+                            <Keyboard size={18} />
+                            Typing Speed Analysis
+                        </h3>
+
+                        {/* Stats Row */}
+                        <div className={styles.typingStatsGrid}>
+                            <div className={styles.typingStat}>
+                                <span className={styles.typingStatValue}>{keystrokeData.typingSpeed.avgWpm}</span>
+                                <span className={styles.typingStatLabel}>Avg WPM</span>
+                            </div>
+                            <div className={styles.typingStat}>
+                                <span className={styles.typingStatValue}>{keystrokeData.typingSpeed.peakWpm}</span>
+                                <span className={styles.typingStatLabel}>Peak WPM</span>
+                            </div>
+                            <div className={styles.typingStat}>
+                                <span className={styles.typingStatValue}>{keystrokeData.stats.totalKeystrokes.toLocaleString()}</span>
+                                <span className={styles.typingStatLabel}>Total Keystrokes</span>
+                            </div>
+                            <div className={styles.typingStat}>
+                                <span className={styles.typingStatValue}>
+                                    {keystrokeData.stats.sessionDuration > 0
+                                        ? `${Math.round(keystrokeData.stats.sessionDuration / 60000)}m`
+                                        : '-'}
+                                </span>
+                                <span className={styles.typingStatLabel}>Active Time</span>
+                            </div>
+                        </div>
+
+                        {/* SVG Line Chart */}
+                        {keystrokeData.typingSpeed.history.length > 1 && (
+                            <div className={styles.chartContainer}>
+                                <TypingSpeedChart
+                                    history={keystrokeData.typingSpeed.history}
+                                    avgWpm={keystrokeData.typingSpeed.avgWpm}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Submitted Code */}
-                {displayFile && (
+                {fileEntries.length > 0 && (
                     <div className={styles.card}>
                         <h3 className={styles.cardTitle}>Submitted Code</h3>
                         <div className={styles.fileSelector}>
                             {fileEntries.map(([path]) => (
-                                <span key={path} className={styles.fileName}>{path}</span>
+                                <button
+                                    key={path}
+                                    className={`${styles.fileTab} ${selectedFile === path ? styles.fileTabActive : ''}`}
+                                    onClick={() => setSelectedFile(path)}
+                                >
+                                    {path}
+                                </button>
                             ))}
                         </div>
                         <CodeEditor
-                            value={displayFile[1]}
-                            language="typescript"
+                            value={selectedFileContent}
+                            language={getLanguage(selectedFile)}
                             height={400}
                             readOnly
                         />
+                    </div>
+                )}
+
+                {/* Proctor Screenshots */}
+                {screenshots.length > 0 && (
+                    <div className={styles.card}>
+                        <h3 className={styles.cardTitle}>
+                            <Camera size={18} />
+                            Proctor Screenshots ({screenshots.length})
+                        </h3>
+                        <div className={styles.screenshotGrid}>
+                            {screenshots.map((screenshot, idx) => (
+                                <div
+                                    key={screenshot.filename}
+                                    className={styles.screenshotItem}
+                                    onClick={() => setSelectedScreenshotIdx(idx)}
+                                >
+                                    <img
+                                        src={screenshot.url}
+                                        alt={`Screenshot ${idx + 1}`}
+                                        loading="lazy"
+                                    />
+                                    <div className={styles.screenshotMeta}>
+                                        <span className={styles.screenshotEvent}>{screenshot.eventType.replace(/_/g, ' ')}</span>
+                                        <span className={styles.screenshotTime}>
+                                            {new Date(screenshot.capturedAt).toLocaleTimeString()}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Screenshot Lightbox */}
+                {selectedScreenshotIdx !== null && screenshots[selectedScreenshotIdx] && (
+                    <div className={styles.lightbox} onClick={() => setSelectedScreenshotIdx(null)}>
+                        <button
+                            className={styles.lightboxClose}
+                            onClick={() => setSelectedScreenshotIdx(null)}
+                        >
+                            <X size={24} />
+                        </button>
+
+                        <button
+                            className={styles.lightboxNav}
+                            data-direction="prev"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedScreenshotIdx(prev =>
+                                    prev !== null && prev > 0 ? prev - 1 : screenshots.length - 1
+                                );
+                            }}
+                        >
+                            <ChevronLeft size={32} />
+                        </button>
+
+                        <div className={styles.lightboxContent} onClick={(e) => e.stopPropagation()}>
+                            <img
+                                src={screenshots[selectedScreenshotIdx].url}
+                                alt={`Screenshot ${selectedScreenshotIdx + 1}`}
+                            />
+                            <div className={styles.lightboxInfo}>
+                                <span>{screenshots[selectedScreenshotIdx].eventType.replace(/_/g, ' ')}</span>
+                                <span>{new Date(screenshots[selectedScreenshotIdx].capturedAt).toLocaleString()}</span>
+                                <span>{selectedScreenshotIdx + 1} / {screenshots.length}</span>
+                            </div>
+                        </div>
+
+                        <button
+                            className={styles.lightboxNav}
+                            data-direction="next"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedScreenshotIdx(prev =>
+                                    prev !== null && prev < screenshots.length - 1 ? prev + 1 : 0
+                                );
+                            }}
+                        >
+                            <ChevronRight size={32} />
+                        </button>
                     </div>
                 )}
 
@@ -287,3 +510,73 @@ export default function AttemptReportPage() {
     );
 }
 
+// SVG Line Chart for Typing Speed
+function TypingSpeedChart({ history, avgWpm }: { history: Array<{ wpm: number; cpm: number; ts: number }>; avgWpm: number }) {
+    const W = 700, H = 200, PAD = { top: 20, right: 20, bottom: 30, left: 45 };
+    const chartW = W - PAD.left - PAD.right;
+    const chartH = H - PAD.top - PAD.bottom;
+
+    const sorted = [...history].sort((a, b) => a.ts - b.ts);
+    const minTs = sorted[0].ts;
+    const maxTs = sorted[sorted.length - 1].ts;
+    const maxWpm = Math.max(...sorted.map(s => s.wpm), avgWpm + 10, 30);
+
+    const x = (ts: number) => PAD.left + ((ts - minTs) / (maxTs - minTs || 1)) * chartW;
+    const y = (wpm: number) => PAD.top + chartH - (wpm / maxWpm) * chartH;
+
+    const points = sorted.map(s => `${x(s.ts)},${y(s.wpm)}`).join(' ');
+    const areaPoints = `${x(minTs)},${PAD.top + chartH} ${points} ${x(maxTs)},${PAD.top + chartH}`;
+
+    const yTicks = [0, Math.round(maxWpm / 3), Math.round((maxWpm * 2) / 3), Math.round(maxWpm)];
+
+    const duration = maxTs - minTs;
+    const timeLabels = [0, 0.25, 0.5, 0.75, 1].map(pct => ({
+        ts: minTs + duration * pct,
+        label: `${Math.round((duration * pct) / 60000)}m`,
+    }));
+
+    return (
+        <svg viewBox={`0 0 ${W} ${H}`} className={styles.chart}>
+            <defs>
+                <linearGradient id="wpmGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--accent-blue)" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="var(--accent-blue)" stopOpacity="0.02" />
+                </linearGradient>
+            </defs>
+
+            {yTicks.map((tick, i) => (
+                <g key={i}>
+                    <line x1={PAD.left} y1={y(tick)} x2={W - PAD.right} y2={y(tick)}
+                        stroke="var(--border)" strokeWidth="1" strokeDasharray="4 4" />
+                    <text x={PAD.left - 8} y={y(tick) + 4} textAnchor="end"
+                        fill="var(--text-muted)" fontSize="10">{tick}</text>
+                </g>
+            ))}
+
+            <line x1={PAD.left} y1={y(avgWpm)} x2={W - PAD.right} y2={y(avgWpm)}
+                stroke="var(--accent-orange)" strokeWidth="1.5" strokeDasharray="6 4" opacity="0.7" />
+            <text x={W - PAD.right + 4} y={y(avgWpm) + 4}
+                fill="var(--accent-orange)" fontSize="10" fontWeight="500">avg</text>
+
+            <polygon points={areaPoints} fill="url(#wpmGradient)" />
+            <polyline points={points} fill="none" stroke="var(--accent-blue)"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+            {sorted.map((s, i) => (
+                <circle key={i} cx={x(s.ts)} cy={y(s.wpm)} r="3"
+                    fill="var(--bg-secondary)" stroke="var(--accent-blue)" strokeWidth="1.5">
+                    <title>{s.wpm} WPM</title>
+                </circle>
+            ))}
+
+            {timeLabels.map((t, i) => (
+                <text key={i} x={x(t.ts)} y={H - 6} textAnchor="middle"
+                    fill="var(--text-muted)" fontSize="10">{t.label}</text>
+            ))}
+
+            <text x={12} y={PAD.top + chartH / 2} textAnchor="middle"
+                fill="var(--text-muted)" fontSize="10"
+                transform={`rotate(-90, 12, ${PAD.top + chartH / 2})`}>WPM</text>
+        </svg>
+    );
+}

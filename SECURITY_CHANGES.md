@@ -2,6 +2,7 @@
 
 ## Overview
 This document summarizes the security and scalability improvements made to the exam platform.
+Legacy TypeScript grader references are retained for audit history; the current production grader lives under `apps/grader-go/`.
 
 ---
 
@@ -257,9 +258,9 @@ Fixed environment leakage that exposed secrets to candidate code:
 - Proper sanitization of logs and error messages
 
 ### Docker Grader Two-Phase Execution
-**File:** `docker-grader.ts`
+**File:** `apps/grader-go/internal/grader/http_grader.go`
 
-Fixed broken Docker grader (npm install failed with `--network none`):
+Fixed HTTP blackbox grader build flow (npm install requires network):
 - Phase 1: `npm install` WITH network enabled
 - Phase 2: `npm test` WITHOUT network (isolated)
 - Additional security: `--read-only`, `--pids-limit`, non-root user
@@ -281,13 +282,11 @@ Fixed invitation bypass (any user could use any invitation):
 - `REQUIRE_EMAIL_FOR_INVITATIONS` config (default: true)
 
 ### Grader Mode Safety
-**File:** `grading-worker.ts`
+**File:** `apps/grader-go/internal/worker/worker.go`
 
 Enforced safe defaults:
-- Production defaults to `docker` mode
-- `local` mode blocked in production (exit 1)
-- `sandboxed` mode shows warning in production
-- Clear logging of grader mode
+- Grader accepts only Docker-based runner modes (`http`, `playwright`, `ui_jsdom`)
+- Unsupported modes are rejected before execution
 
 ### Debug Code Removal
 **All grader files and route files**
@@ -310,15 +309,9 @@ Prevents hidden test code from leaking to candidates through grading logs:
 - Truncates logs to prevent huge outputs
 - Integrated into `grading-results.ts` to sanitize before database storage
 
-### 2. ✅ Local Grader Production Block
-**File:** `apps/api/src/lib/local-grader.ts`
+### 2. ✅ Legacy Local/Sandboxed Graders Removed
 
-Blocks usage of the unsandboxed local grader in production:
-```javascript
-if (process.env.NODE_ENV === 'production') {
-    return { error: 'Local grader blocked in production' };
-}
-```
+Legacy in-process graders were removed during the Go migration. All grading now runs in Docker-based runner modes (`http`, `playwright`, `ui_jsdom`).
 
 ### 3. ✅ Two-Container Architecture Documentation
 **File:** `apps/api/src/lib/grading-config.ts`
@@ -472,12 +465,10 @@ Add these to your `.env` for new features:
 # =============================================================================
 # SECURITY - Grading Configuration
 # =============================================================================
-# Grader mode: docker (recommended) | sandboxed | local
-# - docker: Full container isolation (REQUIRED for production)
-# - sandboxed: Limited isolation, separate test directories
-# - local: NO isolation, blocked in production
-GRADER_MODE=docker
+# Redis Streams worker settings
 GRADING_CONCURRENCY=2
+GRADING_STREAM_GROUP=grading-workers
+GRADING_MAX_ATTEMPTS=3
 
 # =============================================================================
 # SECURITY - Admin Bootstrap (TEMPORARY)
@@ -508,7 +499,6 @@ JWT_REFRESH_SECRET=your-refresh-secret-here
 
 Before deploying to production, verify:
 
-- [ ] `GRADER_MODE=docker` is set
 - [ ] `NODE_ENV=production` is set
 - [ ] `ALLOW_FIRST_ADMIN_BOOTSTRAP=false` after first admin created
 - [ ] `JWT_SECRET` is a strong random value

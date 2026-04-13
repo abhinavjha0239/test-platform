@@ -17,17 +17,15 @@ COPY apps/web/package*.json ./apps/web/
 COPY packages/shared/package*.json ./packages/shared/
 
 # Install dependencies
-RUN npm ci
+RUN npm install --ignore-scripts=false
 
 # ---- Builder Stage ----
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependencies from deps stage
+# Copy dependencies from deps stage (all workspace deps are hoisted to root node_modules)
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
 # Copy source code
 COPY package*.json ./
@@ -37,6 +35,9 @@ COPY packages/shared/ ./packages/shared/
 
 # Build shared package first
 RUN npm run build --workspace=@exam-platform/shared
+
+# Ensure public dir exists (may be empty)
+RUN mkdir -p apps/web/public
 
 # Build Next.js app with standalone output
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -74,7 +75,7 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000 || exit 1
 
 CMD ["node", "apps/web/server.js"]
 

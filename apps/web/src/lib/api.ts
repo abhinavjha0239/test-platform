@@ -527,6 +527,11 @@ class ApiClient {
         return result.data;
     }
 
+    async getStarterFiles(attemptId: string): Promise<{ files: Record<string, string> }> {
+        const result = await this.fetch<{ success: boolean; data: { files: Record<string, string> } }>(`/attempts/${attemptId}/starter-files`);
+        return result.data;
+    }
+
     async getAttempt(id: string): Promise<ExamAttempt> {
         const result = await this.fetch<{ success: boolean; data: ExamAttempt }>(`/attempts/${id}`);
         return result.data;
@@ -631,6 +636,45 @@ class ApiClient {
             }
         }>('/reports/dashboard');
         return result.data;
+    }
+
+    async getAllAttempts(params: PaginationParams & { status?: string; examId?: string } = {}): Promise<{
+        data: Array<{
+            id: string;
+            candidate: { id: string; name: string | null; email: string };
+            exam: { id: string; title: string; challengeName: string | null };
+            status: string;
+            startedAt: string;
+            submittedAt: string | null;
+            score: {
+                public: number | null;
+                hidden: number | null;
+                totalPublic: number | null;
+                totalHidden: number | null;
+                percentage: number | null;
+            };
+            integrity: {
+                tabExits: number;
+                fullscreenExits: number;
+                pasteAttempts: number;
+                outOfWindowSeconds: number;
+                flags: number;
+            };
+        }>;
+        total: number;
+        page: number;
+        limit: number;
+    }> {
+        const query = new URLSearchParams();
+        if (params.page) query.set('page', String(params.page));
+        if (params.limit) query.set('limit', String(params.limit));
+        if (params.search) query.set('search', params.search);
+        if (params.sortBy) query.set('sortBy', params.sortBy);
+        if (params.order) query.set('order', params.order);
+        if (params.status) query.set('status', params.status);
+        if (params.examId) query.set('examId', params.examId);
+        const qs = query.toString();
+        return this.fetch(`/reports/attempts${qs ? `?${qs}` : ''}`);
     }
 
     // ============ ADMIN USERS ============

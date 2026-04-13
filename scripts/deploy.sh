@@ -119,7 +119,7 @@ echo -e "${YELLOW}🏥 Running health checks...${NC}"
 sleep 15
 
 # Check if services are running
-SERVICES=("nginx" "web" "api" "worker" "postgres" "redis")
+SERVICES=("nginx" "web" "api" "grader" "postgres" "redis")
 ALL_HEALTHY=true
 
 for service in "${SERVICES[@]}"; do
@@ -161,5 +161,4 @@ echo "  View status:   docker-compose -f $COMPOSE_FILE ps"
 echo "  Restart:       docker-compose -f $COMPOSE_FILE restart"
 echo "  Stop:          docker-compose -f $COMPOSE_FILE down"
 echo ""
-
 

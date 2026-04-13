@@ -1,0 +1,13 @@
+{
+    "name": "react-todo-list",
+    "private": true,
+    "type": "commonjs",
+    "dependencies": {
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0"
+    },
+    "devDependencies": {
+        "jsdom": "^24.1.0",
+        "esbuild": "^0.20.0"
+    }
+}

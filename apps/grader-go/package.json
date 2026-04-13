@@ -1,0 +1,11 @@
+{
+  "name": "@exam-platform/grader-go",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "go run ./cmd/grader",
+    "dev:watch": "air",
+    "build": "go build -o dist/grader ./cmd/grader",
+    "test": "go test ./..."
+  }
+}

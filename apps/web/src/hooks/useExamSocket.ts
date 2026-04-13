@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-    getSocket, 
-    connectToExam, 
-    leaveExam, 
+import {
+    getSocket,
+    connectToExam,
+    leaveExam,
     disconnectSocket,
     saveFiles as saveFilesSocket,
-    logProctorEvent 
+    logProctorEvent
 } from '@/lib/socket';
 
 interface ProctorWarning {
@@ -44,10 +44,10 @@ export function useExamSocket(attemptId: string, options: UseExamSocketOptions =
     const [lastSaved, setLastSaved] = useState<number | null>(null);
     const [proctorWarning, setProctorWarning] = useState<ProctorWarning | null>(null);
     const [connectionError, setConnectionError] = useState<string | null>(null);
-    
+
     const optionsRef = useRef(options);
     optionsRef.current = options;
-    
+
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -61,7 +61,7 @@ export function useExamSocket(attemptId: string, options: UseExamSocketOptions =
 
             try {
                 const response = await connectToExam(attemptId);
-                
+
                 if (!mounted) return;
 
                 if (response.success) {
@@ -113,6 +113,7 @@ export function useExamSocket(attemptId: string, options: UseExamSocketOptions =
 
         socket.on('grading:complete', (data: { result: GradingResult; isPreview: boolean }) => {
             if (mounted) {
+                // Grading complete
                 optionsRef.current.onGradingComplete?.(data.result, data.isPreview);
             }
         });
@@ -121,7 +122,7 @@ export function useExamSocket(attemptId: string, options: UseExamSocketOptions =
             if (mounted) {
                 setProctorWarning(warning);
                 optionsRef.current.onProctorWarning?.(warning);
-                
+
                 // Clear warning after 5 seconds
                 if (warningTimeoutRef.current) {
                     clearTimeout(warningTimeoutRef.current);
@@ -145,7 +146,7 @@ export function useExamSocket(attemptId: string, options: UseExamSocketOptions =
             socket.off('timer:expired');
             socket.off('grading:complete');
             socket.off('proctor:warning');
-            
+
             if (saveTimeoutRef.current) {
                 clearTimeout(saveTimeoutRef.current);
             }
@@ -158,14 +159,14 @@ export function useExamSocket(attemptId: string, options: UseExamSocketOptions =
     // Save files function
     const saveFiles = useCallback(async (files: Record<string, string>) => {
         setSaveStatus('saving');
-        
+
         try {
             const response = await saveFilesSocket(attemptId, files);
-            
+
             if (response.success) {
                 setSaveStatus('saved');
                 setLastSaved(response.savedAt || Date.now());
-                
+
                 // Reset to idle after 2 seconds
                 if (saveTimeoutRef.current) {
                     clearTimeout(saveTimeoutRef.current);
@@ -186,7 +187,7 @@ export function useExamSocket(attemptId: string, options: UseExamSocketOptions =
         if (saveTimeoutRef.current) {
             clearTimeout(saveTimeoutRef.current);
         }
-        
+
         saveTimeoutRef.current = setTimeout(() => {
             saveFiles(files);
         }, delay);
@@ -208,7 +209,7 @@ export function useExamSocket(attemptId: string, options: UseExamSocketOptions =
     const reconnect = useCallback(async () => {
         setIsConnecting(true);
         disconnectSocket();
-        
+
         try {
             const response = await connectToExam(attemptId);
             if (response.success) {
@@ -228,19 +229,19 @@ export function useExamSocket(attemptId: string, options: UseExamSocketOptions =
         // Timer state
         timeLeft,
         formattedTime,
-        
+
         // Connection state
         isConnected,
         isConnecting,
         connectionError,
-        
+
         // Save state
         saveStatus,
         lastSaved,
-        
+
         // Proctor state
         proctorWarning,
-        
+
         // Actions
         saveFiles,
         debouncedSave,

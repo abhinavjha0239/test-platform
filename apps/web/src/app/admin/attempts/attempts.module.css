@@ -1,0 +1,257 @@
+.toolbar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.searchBox {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 360px;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.searchInput:focus {
+    border-color: var(--accent-blue);
+}
+
+.filterGroup {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.filterSelect {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+    min-width: 140px;
+}
+
+.filterSelect:focus {
+    border-color: var(--accent-blue);
+}
+
+.filterLabel {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+/* Candidate cell */
+.candidateCell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.candidateName {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.candidateEmail {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* Exam cell */
+.examCell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.examTitle {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.challengeName {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* Score cell */
+.scoreCell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.scoreBar {
+    width: 48px;
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.scoreBarFill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.scorePercent {
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 36px;
+}
+
+.scorePending {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Integrity cell */
+.integrityCell {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.integrityBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(78, 201, 176, 0.1);
+    color: var(--accent-green);
+}
+
+.integrityBadge[data-warning="true"] {
+    background: rgba(255, 107, 107, 0.12);
+    color: var(--error);
+}
+
+.integrityClean {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* Actions */
+.actions {
+    display: flex;
+    gap: 4px;
+}
+
+.actionBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.actionBtn:hover {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+/* Summary stats bar */
+.statsBar {
+    display: flex;
+    gap: 16px;
+    padding: 14px 18px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+.statItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.statDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.statLabel {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.statCount {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Filter active indicator */
+.activeFilter {
+    position: relative;
+}
+
+.activeFilter::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+}
+
+.clearFilters {
+    padding: 6px 12px;
+    border: none;
+    background: none;
+    color: var(--accent-blue);
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.clearFilters:hover {
+    background: rgba(0, 122, 204, 0.08);
+}

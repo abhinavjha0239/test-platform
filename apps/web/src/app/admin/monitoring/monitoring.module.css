@@ -1,0 +1,573 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.headerBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.liveIndicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent-green);
+}
+
+.liveDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(78, 201, 176, 0.4);
+    }
+
+    50% {
+        opacity: 0.7;
+        box-shadow: 0 0 0 6px rgba(78, 201, 176, 0);
+    }
+}
+
+.headerCount {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.headerRight {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lastUpdate {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.autoRefreshBtn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.autoRefreshActive {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+    background: rgba(78, 201, 176, 0.08);
+}
+
+.spinning {
+    animation: spin 2s linear infinite;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loadingState,
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 60px 20px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.emptyState h2 {
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* Candidate Grid */
+.candidateGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.candidateCard {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.2s;
+}
+
+.candidateCard:hover {
+    border-color: var(--accent-blue);
+}
+
+.cardWarning {
+    border-color: var(--error) !important;
+    box-shadow: 0 0 0 1px rgba(244, 71, 71, 0.15);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.cardInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.cardName {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cardEmail {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.viewBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.viewBtn:hover {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+.cardExam {
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    align-self: flex-start;
+}
+
+.cardTime {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Typing Speed Row */
+.cardTyping {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: rgba(0, 122, 204, 0.06);
+    border: 1px solid rgba(0, 122, 204, 0.12);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.cardTyping svg {
+    color: var(--accent-blue);
+    flex-shrink: 0;
+}
+
+.typingWpm {
+    font-weight: 600;
+    color: var(--accent-blue);
+}
+
+.typingDetail {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.typingDetail::before {
+    content: '·';
+    margin-right: 4px;
+}
+
+.timeLeft {
+    margin-left: auto;
+    font-weight: 500;
+    color: var(--accent-green);
+}
+
+.timeUrgent {
+    color: var(--error);
+    font-weight: 700;
+    animation: alertFlash 2s ease-in-out infinite;
+}
+
+@keyframes alertFlash {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.cardFlags {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.flagItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    border: 1px solid transparent;
+}
+
+.flagActive {
+    border-color: var(--accent-orange);
+    background: rgba(206, 145, 120, 0.08);
+}
+
+.flagCount {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.flagActive .flagCount {
+    color: var(--accent-orange);
+}
+
+.flagLabel {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--text-muted);
+}
+
+.alertBar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(244, 71, 71, 0.1);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--error);
+}
+
+/* Keystroke Log */
+.keystrokeToggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-blue);
+    background: rgba(0, 122, 204, 0.05);
+    border: 1px dashed rgba(0, 122, 204, 0.25);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+}
+
+.keystrokeToggle:hover {
+    background: rgba(0, 122, 204, 0.12);
+    border-style: solid;
+}
+
+/* Keystroke Panel */
+.ksPanel {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    animation: ksSlideIn 0.25s ease;
+}
+
+@keyframes ksSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ksStats {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.ksStat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 6px;
+    background: var(--bg-tertiary);
+}
+
+.ksStatVal {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent-blue);
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.ksStatLbl {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+}
+
+.ksTabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+}
+
+.ksTab {
+    flex: 1;
+    padding: 8px 6px;
+    font-size: 11px;
+    font-weight: 500;
+    text-align: center;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.ksTab:hover {
+    color: var(--text-primary);
+    background: rgba(0, 122, 204, 0.04);
+}
+
+.ksTabActive {
+    color: var(--accent-blue);
+    border-bottom-color: var(--accent-blue);
+    background: rgba(0, 122, 204, 0.06);
+}
+
+.ksContent {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+/* Reconstructed Text */
+.ksTextOutput {
+    margin: 0;
+    padding: 14px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: var(--bg-primary);
+    border: none;
+}
+
+/* All Keys Grid */
+.ksKeysGrid {
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.key {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    font-size: 11px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    line-height: 1.4;
+    transition: background 0.1s;
+}
+
+.key:hover {
+    background: rgba(0, 122, 204, 0.08);
+    border-color: rgba(0, 122, 204, 0.25);
+}
+
+.keySpecial {
+    background: rgba(0, 122, 204, 0.06);
+    border-color: rgba(0, 122, 204, 0.2);
+    color: var(--accent-blue);
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.keyMod {
+    background: rgba(206, 145, 120, 0.08);
+    border-color: rgba(206, 145, 120, 0.25);
+    color: var(--accent-orange);
+}
+
+.keyDelete {
+    background: rgba(244, 71, 71, 0.06);
+    border-color: rgba(244, 71, 71, 0.2);
+    color: var(--error);
+}
+
+.modPrefix {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--accent-orange);
+    margin-right: 2px;
+}
+
+/* Timeline */
+.ksTimeline {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.ksTimeGroup {
+    position: relative;
+    padding-left: 20px;
+    padding-bottom: 12px;
+    border-left: 2px solid var(--border);
+    margin-left: 6px;
+}
+
+.ksTimeGroup:last-child {
+    border-left-color: transparent;
+}
+
+.ksTimeLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.ksTimeDot {
+    position: absolute;
+    left: -5px;
+    top: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    border: 2px solid var(--bg-tertiary);
+}
+
+.ksTimeCount {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+    padding: 1px 6px;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+}
+
+.ksTimeKeys {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+@media (max-width: 768px) {
+    .headerBar {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .candidateGrid {
+        grid-template-columns: 1fr;
+    }
+}

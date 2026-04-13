@@ -14,7 +14,7 @@
 #   - nginx: Reverse proxy with SSL termination
 #   - web: Next.js frontend
 #   - api: Express API server
-#   - worker: Grading worker (processes exam submissions)
+#   - grader: Go grading worker (processes exam submissions)
 #   - postgres: PostgreSQL database
 #   - redis: Redis for job queue and pub/sub
 
@@ -92,13 +92,13 @@ services:
       - REDIS_URL=${REDIS_URL}
       - JWT_SECRET=${JWT_SECRET}
       - FRONTEND_URL=${FRONTEND_URL}
-      - GRADER_MODE=docker
-      - USE_DOCKER_GRADER=true
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+      - AZURE_STORAGE_CONTAINER=${AZURE_STORAGE_CONTAINER:-screenshots}
+    volumes:
+      - api-uploads:/app/uploads
     expose:
       - "3001"
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -112,32 +112,38 @@ services:
       start_period: 10s
 
   # ============================================
-  # Grading Worker
+  # Grader (Go)
   # ============================================
-  worker:
+  grader:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
-    command: ["node", "apps/api/dist/workers/grading-worker.js"]
+      dockerfile: apps/grader-go/Dockerfile
     environment:
       - NODE_ENV=production
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
-      - GRADER_MODE=docker
-      - USE_DOCKER_GRADER=true
       - GRADING_CONCURRENCY=${GRADING_CONCURRENCY:-6}
+      - GRADING_STREAM_GROUP=${GRADING_STREAM_GROUP:-grading-workers}
+      - GRADING_STREAM_CONSUMER=${GRADING_STREAM_CONSUMER:-}
+      - GRADING_STREAM_BLOCK_MS=${GRADING_STREAM_BLOCK_MS:-2000}
+      - GRADING_STREAM_BATCH=${GRADING_STREAM_BATCH:-10}
+      - GRADING_PEL_IDLE_MS=${GRADING_PEL_IDLE_MS:-60000}
+      - GRADING_PEL_POLL_MS=${GRADING_PEL_POLL_MS:-10000}
+      - GRADING_RETRY_POLL_MS=${GRADING_RETRY_POLL_MS:-1000}
+      - GRADING_RETRY_BASE_MS=${GRADING_RETRY_BASE_MS:-1000}
+      - GRADING_RETRY_MAX_MS=${GRADING_RETRY_MAX_MS:-60000}
+      - GRADING_MAX_ATTEMPTS=${GRADING_MAX_ATTEMPTS:-3}
+      - GRADING_JOB_TTL_SEC=${GRADING_JOB_TTL_SEC:-172800}
     volumes:
       # Mount Docker socket for container-based grading
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
     networks:
       - exam-network
-    # Worker needs to be in docker group to access socket
+    # Grader needs to be in docker group to access socket
     group_add:
       - ${DOCKER_GID:-999}
     # Resource limits for 8-core VM
@@ -212,4 +218,5 @@ volumes:
     driver: local
   certbot-www:
     driver: local
-
+  api-uploads:
+    driver: local

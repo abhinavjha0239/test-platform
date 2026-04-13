@@ -1,5 +1,106 @@
 import type { CreateChallengeInput } from '@exam-platform/shared';
 
+// Starter code extracted for Hot Swap - used in both starterFiles and generatedFiles
+const starterMainRs = `#![allow(unused)]
+
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::Json,
+    routing::{get, post},
+    Router,
+};
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, sync::Arc};
+use tokio::{net::TcpListener, sync::Mutex};
+
+#[derive(Clone, Serialize, Deserialize)]
+struct Metric {
+    id: String,
+    name: String,
+    value: f64,
+    unit: String,
+    timestamp: String,
+}
+
+type AppState = Arc<Mutex<Vec<Metric>>>;
+
+#[tokio::main]
+async fn main() {
+    let state: AppState = Arc::new(Mutex::new(Vec::new()));
+
+    let app = Router::new()
+        .route("/health", get(health))
+        .route("/metrics", get(list_metrics).post(create_metric))
+        .route("/metrics/latest/:name", get(latest_metric))
+        .route("/metrics/avg/:name", get(avg_metric))
+        .with_state(state);
+
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    let addr = format!("0.0.0.0:{}", port);
+    println!("Listening on {}", addr);
+    
+    let listener = TcpListener::bind(&addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn health() -> Json<serde_json::Value> {
+    Json(serde_json::json!({ "ok": true }))
+}
+
+#[derive(Deserialize)]
+struct CreateMetric {
+    name: String,
+    value: f64,
+    unit: String,
+}
+
+async fn create_metric(
+    State(state): State<AppState>,
+    Json(payload): Json<CreateMetric>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    // TODO: Generate ID, create metric, store, return 201
+    (StatusCode::NOT_IMPLEMENTED, Json(serde_json::json!({"error": "not implemented"})))
+}
+
+#[derive(Deserialize)]
+struct ListQuery {
+    name: Option<String>,
+    limit: Option<usize>,
+}
+
+async fn list_metrics(
+    State(state): State<AppState>,
+    Query(query): Query<ListQuery>,
+) -> Json<Vec<Metric>> {
+    // TODO: Filter by name, apply limit
+    Json(vec![])
+}
+
+async fn latest_metric(
+    State(state): State<AppState>,
+    Path(name): Path<String>,
+) -> Result<Json<Metric>, StatusCode> {
+    // TODO: Find most recent metric with this name
+    Err(StatusCode::NOT_IMPLEMENTED)
+}
+
+#[derive(Deserialize)]
+struct AvgQuery {
+    from: Option<String>,
+    to: Option<String>,
+}
+
+async fn avg_metric(
+    State(state): State<AppState>,
+    Path(name): Path<String>,
+    Query(query): Query<AvgQuery>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    // TODO: Calculate average of metrics with this name
+    Err(StatusCode::NOT_IMPLEMENTED)
+}
+`;
+
 export const challenge: CreateChallengeInput = {
   name: 'Health Metrics API (Rust)',
   description: `# Health Metrics API
@@ -103,105 +204,7 @@ Get average value for a metric.
 `,
 
   starterFiles: {
-    'src/main.rs': `#![allow(unused)]
-
-use axum::{
-    extract::{Path, Query, State},
-    http::StatusCode,
-    response::Json,
-    routing::{get, post},
-    Router,
-};
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::Arc};
-use tokio::{net::TcpListener, sync::Mutex};
-
-#[derive(Clone, Serialize, Deserialize)]
-struct Metric {
-    id: String,
-    name: String,
-    value: f64,
-    unit: String,
-    timestamp: String,
-}
-
-type AppState = Arc<Mutex<Vec<Metric>>>;
-
-#[tokio::main]
-async fn main() {
-    let state: AppState = Arc::new(Mutex::new(Vec::new()));
-
-    let app = Router::new()
-        .route("/health", get(health))
-        .route("/metrics", get(list_metrics).post(create_metric))
-        .route("/metrics/latest/:name", get(latest_metric))
-        .route("/metrics/avg/:name", get(avg_metric))
-        .with_state(state);
-
-    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
-    let addr = format!("0.0.0.0:{}", port);
-    println!("Listening on {}", addr);
-    
-    let listener = TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
-}
-
-async fn health() -> Json<serde_json::Value> {
-    Json(serde_json::json!({ "ok": true }))
-}
-
-#[derive(Deserialize)]
-struct CreateMetric {
-    name: String,
-    value: f64,
-    unit: String,
-}
-
-async fn create_metric(
-    State(state): State<AppState>,
-    Json(payload): Json<CreateMetric>,
-) -> (StatusCode, Json<serde_json::Value>) {
-    // TODO: Generate ID, create metric, store, return 201
-    (StatusCode::NOT_IMPLEMENTED, Json(serde_json::json!({"error": "not implemented"})))
-}
-
-#[derive(Deserialize)]
-struct ListQuery {
-    name: Option<String>,
-    limit: Option<usize>,
-}
-
-async fn list_metrics(
-    State(state): State<AppState>,
-    Query(query): Query<ListQuery>,
-) -> Json<Vec<Metric>> {
-    // TODO: Filter by name, apply limit
-    Json(vec![])
-}
-
-async fn latest_metric(
-    State(state): State<AppState>,
-    Path(name): Path<String>,
-) -> Result<Json<Metric>, StatusCode> {
-    // TODO: Find most recent metric with this name
-    Err(StatusCode::NOT_IMPLEMENTED)
-}
-
-#[derive(Deserialize)]
-struct AvgQuery {
-    from: Option<String>,
-    to: Option<String>,
-}
-
-async fn avg_metric(
-    State(state): State<AppState>,
-    Path(name): Path<String>,
-    Query(query): Query<AvgQuery>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    // TODO: Calculate average of metrics with this name
-    Err(StatusCode::NOT_IMPLEMENTED)
-}
-`,
+    'src/main.rs': starterMainRs,
     'README.md': `# Health Metrics API (Rust)
 
 Implement the handlers in \`src/main.rs\`.
@@ -236,9 +239,10 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = { version = "0.4", features = ["serde"] }
 `,
+        'src/main.rs': starterMainRs,  // Hot Swap: pre-compile during warmup
       },
       installCommand: 'cargo build --release',
-      runCommand: './target/release/candidate',
+      runCommand: 'cargo build --release && ./target/release/candidate',  // Incremental rebuild
       port: 3000,
       healthPath: '/health',
       startupTimeoutMs: 120000,

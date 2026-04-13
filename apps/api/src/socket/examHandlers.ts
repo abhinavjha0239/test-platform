@@ -49,7 +49,9 @@ export function setupExamHandlers(io: Server, socket: Socket) {
             }
 
             // Join the attempt room
-            socket.join(`attempt:${attemptId}`);
+            const roomName = `attempt:${attemptId}`;
+            socket.join(roomName);
+            console.log(`[DEBUG] Socket ${socket.id} joined room=${roomName} for user=${socket.user.email}`);
             
             // Store attempt ID on socket for cleanup
             socket.data.attemptId = attemptId;
@@ -159,6 +161,38 @@ export function setupExamHandlers(io: Server, socket: Socket) {
         delete socket.data.attemptId;
         
         console.log(`📝 User ${socket.user.email} left attempt ${attemptId}`);
+    });
+
+    /**
+     * Reviewer/Admin: Join exam monitoring room for real-time proctoring
+     */
+    socket.on('exam:monitor:join', async (examId: string, callback) => {
+        try {
+            // Only allow ADMIN and REVIEWER roles
+            if (!['ADMIN', 'REVIEWER'].includes(socket.user.role)) {
+                callback?.({ success: false, error: 'Access denied' });
+                return;
+            }
+
+            const roomName = `exam:monitor:${examId}`;
+            socket.join(roomName);
+            socket.data.monitoringExamId = examId;
+
+            console.log(`👁️ ${socket.user.role} ${socket.user.email} started monitoring exam ${examId}`);
+            callback?.({ success: true, examId });
+        } catch (error) {
+            console.error('Error joining monitor room:', error);
+            callback?.({ success: false, error: 'Failed to join monitoring' });
+        }
+    });
+
+    /**
+     * Reviewer/Admin: Leave exam monitoring room
+     */
+    socket.on('exam:monitor:leave', async (examId: string) => {
+        socket.leave(`exam:monitor:${examId}`);
+        delete socket.data.monitoringExamId;
+        console.log(`👁️ ${socket.user.email} stopped monitoring exam ${examId}`);
     });
 
     /**

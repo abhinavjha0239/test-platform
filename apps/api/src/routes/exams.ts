@@ -23,11 +23,11 @@ router.get('/', authenticate, async (req, res, next) => {
         const sortBy = (req.query.sortBy as string) || 'createdAt';
         const order = (req.query.order as string) === 'asc' ? 'asc' : 'desc';
 
-        const isAdmin = req.user!.role === 'ADMIN';
+        const isAdminOrReviewer = req.user!.role === 'ADMIN' || req.user!.role === 'REVIEWER';
 
         // Build where conditions
         const conditions = [];
-        if (!isAdmin) {
+        if (!isAdminOrReviewer) {
             conditions.push(eq(exams.isPublished, true));
         }
         if (search) {
@@ -91,8 +91,8 @@ router.get('/:id', authenticate, async (req, res, next) => {
             throw new ApiError('Exam not found', 404);
         }
 
-        // Don't expose hidden tests to candidates
-        if (req.user!.role === 'CANDIDATE' && exam.challenge) {
+        // Don't expose hidden tests to candidates or reviewers (only ADMIN can see)
+        if (req.user!.role !== 'ADMIN' && exam.challenge) {
             exam.challenge.hiddenTests = '[HIDDEN]';
         }
 
@@ -436,7 +436,7 @@ router.delete('/:id', authenticate, requireRole('ADMIN'), async (req, res, next)
 });
 
 // ============ Container Pool Management Endpoints ============
-// NOTE: Pool management has been moved to the grader microservice (apps/grader).
+// NOTE: Pool management has been moved to the grader microservice (apps/grader-go).
 // These endpoints are kept for API compatibility but now return guidance messages.
 
 /**
@@ -520,4 +520,3 @@ router.delete('/pool/drain', authenticate, requireRole('ADMIN'), async (req, res
 });
 
 export default router;
-

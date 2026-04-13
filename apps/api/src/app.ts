@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import path from 'path';
 
 import authRoutes from './routes/auth.js';
 import challengeRoutes from './routes/challenges.js';
@@ -11,11 +12,17 @@ import proctorRoutes from './routes/proctor.js';
 import reportsRoutes from './routes/reports.js';
 import adminUsersRoutes from './routes/admin-users.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { apiLimiter } from './middleware/rateLimiter.js';
+import { globalIPLimiter, apiLimiter } from './middleware/rateLimiter.js';
 import { isRedisConnected } from './lib/redis.js';
 import { detectApiVersion, getVersionInfo } from './middleware/apiVersion.js';
 
 const app = express();
+
+// Trust proxy when behind Nginx/Load Balancer
+// Required for accurate IP detection in rate limiting
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
 
 // Security & parsing
 app.use(helmet());
@@ -29,7 +36,9 @@ app.use(morgan('dev'));
 // API version detection
 app.use('/api', detectApiVersion);
 
-// Apply general rate limiting to all API routes
+// Layer 1: Global IP-based DDoS protection (5000 req/s per IP — college-safe)
+app.use('/api', globalIPLimiter);
+// Layer 2: Per-user rate limiting (300 req/min per authenticated user)
 app.use('/api', apiLimiter);
 
 // Health check
@@ -48,6 +57,9 @@ app.get('/api/version', (req, res) => {
         data: getVersionInfo(),
     });
 });
+
+// Serve static files from uploads directory (screenshots, etc.)
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // API Routes (v1 - current)
 // All current routes are v1 by default

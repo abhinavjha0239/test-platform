@@ -1,0 +1,202 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 60px;
+    color: var(--text-muted);
+}
+
+.error h2 {
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.error svg {
+    color: var(--error);
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.statCard {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 24px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.statCard>div {
+    display: flex;
+    flex-direction: column;
+}
+
+.statIconBlue {
+    color: var(--accent-blue);
+}
+
+.statIconGreen {
+    color: var(--accent-green);
+}
+
+.statValue {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.statLabel {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.toolbar {
+    display: flex;
+    gap: 8px;
+}
+
+.tableCard {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.tableTitle {
+    padding: 16px 20px;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+}
+
+.tableWrap {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+}
+
+.table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.table tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.rank {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    width: 30px;
+}
+
+.candidateCell {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.candidateName {
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.candidateEmail {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.scoreCell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.scoreBar {
+    width: 48px;
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.scoreFill {
+    height: 100%;
+    border-radius: 3px;
+}
+
+.flagBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(206, 145, 120, 0.1);
+    color: var(--accent-orange);
+}
+
+.flagBadge[data-warning="true"] {
+    background: rgba(244, 71, 71, 0.1);
+    color: var(--error);
+}
+
+.viewBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+}
+
+.viewBtn:hover {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+@media (max-width: 768px) {
+    .statsGrid {
+        grid-template-columns: 1fr;
+    }
+}

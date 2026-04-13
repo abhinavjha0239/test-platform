@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package challenge;
+
+option go_package = "github.com/yourorg/proto-go/challenge;challenge";
+
+import "grading.proto";
+
+message Challenge {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  map<string, string> starter_files = 4;
+  string public_tests = 5;
+  string hidden_tests = 6;
+  map<string, string> dependencies = 7;
+  string node_version = 8;
+  grading.ChallengeRunner runner = 9;
+}

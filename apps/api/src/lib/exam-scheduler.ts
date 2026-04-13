@@ -10,7 +10,7 @@
  * - Uses Redis distributed lock to prevent duplicate processing
  * - Gracefully handles missed end times
  * 
- * NOTE: Pool warming is now handled by the grader microservice (apps/grader).
+ * NOTE: Pool warming is now handled by the grader microservice (apps/grader-go).
  * This scheduler publishes warmup requests via Redis.
  */
 
@@ -123,7 +123,7 @@ async function runSchedulerCycle(): Promise<void> {
             // Continue with auto-submit even if warmup fails
         }
 
-        // === Auto-submit for expired exams ===
+        // === Auto-submit for expired exams (scheduled end time) ===
         const now = new Date();
         // Only look back 24 hours (to avoid processing very old exams)
         const lookback = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -172,6 +172,55 @@ async function runSchedulerCycle(): Promise<void> {
             // Mark this exam's scheduled end as processed
             await redisConnection.set(processedKey, '1', 'EX', 24 * 60 * 60);
         }
+
+        // === FALLBACK: Auto-submit for INDIVIDUAL time limit expiry ===
+        // This catches attempts where:
+        // 1. Exam has no scheduledEndAt (unscheduled exams)
+        // 2. User lost WebSocket connection and timer stopped
+        // 3. Timer never started for some reason
+        try {
+            // Find all IN_PROGRESS attempts that have exceeded their time limit
+            const allInProgressAttempts = await db.query.examAttempts.findMany({
+                where: eq(examAttempts.status, 'IN_PROGRESS'),
+                with: {
+                    exam: {
+                        with: {
+                            challenge: true,
+                        },
+                    },
+                },
+            });
+
+            for (const attempt of allInProgressAttempts) {
+                if (!attempt.exam) continue;
+
+                // Calculate if time has expired
+                const startedAt = new Date(attempt.startedAt).getTime();
+                const timeLimitMs = attempt.exam.timeLimit * 60 * 1000; // timeLimit is in minutes
+                const endTime = startedAt + timeLimitMs;
+                const nowMs = Date.now();
+
+                // Add 1 minute grace period to avoid race conditions with WebSocket timer
+                const gracePeriodMs = 60 * 1000;
+
+                if (nowMs > endTime + gracePeriodMs) {
+                    // Check if already being processed (use Redis lock)
+                    const attemptLockKey = `scheduler:attempt_lock:${attempt.id}`;
+                    const lockAcquired = await redisConnection.set(attemptLockKey, '1', 'EX', 300, 'NX');
+                    
+                    if (!lockAcquired) {
+                        continue; // Another process is handling this
+                    }
+
+                    const minutesOverdue = Math.round((nowMs - endTime) / 60000);
+                    console.log(`⏰ Attempt ${attempt.id} exceeded time limit by ${minutesOverdue} min. Auto-submitting (fallback)...`);
+
+                    await autoSubmitAttempt(attempt, attempt.exam);
+                }
+            }
+        } catch (fallbackError) {
+            console.error('❌ Fallback auto-submit error:', fallbackError);
+        }
     } finally {
         // Release lock
         await redisConnection.del(SCHEDULER_LOCK_KEY);
@@ -219,6 +268,7 @@ async function autoSubmitAttempt(
                 hiddenTests: exam.challenge.hiddenTests,
                 dependencies: exam.challenge.dependencies as Record<string, string>,
                 runner: exam.challenge.runner as any,
+                challengeId: exam.challenge.id,
                 nodeVersion: exam.challenge.nodeVersion,
                 timeLimit: 120,
                 memoryLimit: 512,
@@ -272,4 +322,3 @@ export function getSchedulerStatus(): { running: boolean; interval: number } {
         interval: SCHEDULER_INTERVAL_MS,
     };
 }
-

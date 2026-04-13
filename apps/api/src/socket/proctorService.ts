@@ -56,17 +56,20 @@ export async function logProctorEvent(
         return;
     }
 
+    // Validate duration - max 24 hours (86400 seconds) to prevent timestamp bugs
+    const validatedDuration = duration ? Math.min(Math.max(0, duration), 86400) : undefined;
+
     // Insert the proctor event
     await db.insert(proctorEvents).values({
         attemptId,
         eventType: eventType as 'TAB_LEAVE' | 'TAB_RETURN' | 'FULLSCREEN_EXIT' | 'FULLSCREEN_ENTER' | 'PASTE_ATTEMPT',
-        duration,
+        duration: validatedDuration,
         pasteLength,
         isMultiline,
     });
 
     // Update aggregate counters on the attempt
-    await updateIntegrityCounters(attemptId, eventType, duration);
+    await updateIntegrityCounters(attemptId, eventType, validatedDuration);
 
     // Get current violation count for this event type
     const violationCount = await getViolationCount(attemptId, eventType);

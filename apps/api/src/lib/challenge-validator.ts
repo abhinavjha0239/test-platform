@@ -4,7 +4,7 @@
  * Validates challenges before they can be published.
  * Ensures tests are comprehensive, isolated, and don't have loopholes.
  * 
- * NOTE: Actual grading is handled by the grader microservice (apps/grader).
+ * NOTE: Actual grading is handled by the grader microservice (apps/grader-go).
  * This validator performs static checks only.
  */
 
@@ -133,7 +133,7 @@ export async function validateChallenge(challenge: ChallengeToValidate): Promise
     }
 
     // 7. Runtime validation (grading starter and solution files)
-    // NOTE: Runtime validation has been moved to the grader microservice (apps/grader).
+    // NOTE: Runtime validation has been moved to the grader microservice (apps/grader-go).
     // To validate a challenge with actual grading:
     // 1. Save the challenge to the database
     // 2. Queue a grading job via the API
@@ -194,5 +194,4 @@ export function quickValidate(challenge: ChallengeToValidate): ValidationResult 
         checks,
     };
 }
-
 

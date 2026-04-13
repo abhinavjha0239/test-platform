@@ -1,0 +1,11 @@
+{
+    "name": "ui-jsdom-tests",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "devDependencies": {
+        "vitest": "^1.6.0",
+        "@babel/parser": "^7.24.0",
+        "@babel/traverse": "^7.24.0"
+    }
+}

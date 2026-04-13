@@ -1,0 +1,18 @@
+services:
+  grader:
+    build:
+      context: .
+      dockerfile: apps/grader-go/Dockerfile
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - GRADING_STREAM_GROUP=grading-workers
+      - USE_POOLING=true
+      - POOL_WORK_DIR=/tmp/grader-pool
+      - NETWORK_POOL_MAX=${NETWORK_POOL_MAX:-100}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp
+    restart: unless-stopped
+    group_add:
+      - ${DOCKER_GID:-999}

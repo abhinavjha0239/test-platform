@@ -1,0 +1,5 @@
+FROM node:20-alpine
+WORKDIR /app-deps
+COPY react-candidate-package.json ./package.json
+RUN npm install --legacy-peer-deps && npm cache clean --force
+WORKDIR /app

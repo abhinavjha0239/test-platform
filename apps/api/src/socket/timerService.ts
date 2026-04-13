@@ -372,6 +372,7 @@ async function handleTimerExpired(io: Server, attemptId: string): Promise<void> 
             hiddenTests: attempt.exam!.challenge!.hiddenTests,
             dependencies: attempt.exam!.challenge!.dependencies as Record<string, string>,
             runner: (attempt.exam!.challenge as any).runner ?? undefined,
+            challengeId: attempt.exam!.challenge!.id,
             nodeVersion: attempt.exam!.challenge!.nodeVersion,
             timeLimit: 120,
             memoryLimit: 512,

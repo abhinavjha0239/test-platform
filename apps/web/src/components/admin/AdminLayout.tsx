@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth-store';
 import {
     Code2, BarChart3, FileText, Users, LogOut,
-    ChevronRight, Settings, Server
+    ChevronRight, Settings, Server, ClipboardList, PieChart, Radio
 } from 'lucide-react';
 import styles from './AdminLayout.module.css';
 
@@ -18,7 +18,10 @@ interface NavItem {
 
 const navItems: NavItem[] = [
     { href: '/admin', label: 'Dashboard', icon: <BarChart3 size={18} /> },
+    { href: '/admin/attempts', label: 'Attempts', icon: <ClipboardList size={18} /> },
     { href: '/admin/exams', label: 'Exams', icon: <FileText size={18} /> },
+    { href: '/admin/analytics', label: 'Analytics', icon: <PieChart size={18} /> },
+    { href: '/admin/monitoring', label: 'Live Monitor', icon: <Radio size={18} /> },
     { href: '/admin/challenges', label: 'Challenges', icon: <Code2 size={18} /> },
     { href: '/admin/pool', label: 'Container Pool', icon: <Server size={18} /> },
 ];
@@ -62,7 +65,13 @@ export function AdminLayout({ children, title, breadcrumbs, actions }: AdminLayo
                 </div>
 
                 <nav className={styles.nav}>
-                    {navItems.map((item) => (
+                    {navItems.filter(item => {
+                        if (user?.role === 'REVIEWER') {
+                            // Reviewers see Dashboard, Attempts, and Exams (read-only)
+                            return !['/admin/challenges', '/admin/pool'].includes(item.href);
+                        }
+                        return true;
+                    }).map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}

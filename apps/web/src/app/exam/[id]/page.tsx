@@ -89,6 +89,11 @@ export default function ExamWorkspace() {
     const [activeFile, setActiveFile] = useState<string>('');
     const [openFiles, setOpenFiles] = useState<string[]>([]);
     const [testOutput, setTestOutput] = useState<string>('Click "Run Tests" to execute your code against public tests.');
+    const [testDetails, setTestDetails] = useState<Array<{
+        name: string;
+        status: string;
+        failureMessages?: string[];
+    }>>([]);
     const [isRunning, setIsRunning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [sqlResults, setSqlResults] = useState<Array<{
@@ -158,6 +163,38 @@ export default function ExamWorkspace() {
         runTestsStartedAtRef.current = null;
     }, []);
 
+    /** Strip infrastructure noise from test runner output */
+    const sanitizeTestLogs = useCallback((logs: string): string => {
+        const lines = logs.split('\n');
+        const out: string[] = [];
+        let inErrorBlock = false;
+
+        for (const line of lines) {
+            const l = line.toLowerCase();
+            // Skip npm notices
+            if (l.startsWith('npm notice') || l.startsWith('npm warn')) continue;
+            // Skip JUNIT report line
+            if (l.includes('junit report written to')) continue;
+
+            // Detect start of Unhandled Error block
+            if (l.includes('unhandled error')) {
+                inErrorBlock = true;
+                continue;
+            }
+            if (inErrorBlock) {
+                // End block after Serialized Error line
+                if (l.includes('serialized error')) {
+                    inErrorBlock = false;
+                }
+                continue;
+            }
+
+            out.push(line);
+        }
+
+        return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    }, []);
+
     const applyPreviewResult = useCallback((result: {
         publicScore?: number | null;
         totalPublic?: number | null;
@@ -167,9 +204,27 @@ export default function ExamWorkspace() {
         const passed = result.publicScore ?? 0;
         const total = result.totalPublic ?? 0;
         const status = passed === total ? '✅ All tests passed!' : `⚠️ ${passed}/${total} tests passed`;
-        setTestOutput(`${status}\n\nPublic Tests: ${passed}/${total}\n\n${result.logs ? '--- Test Output ---\n' + result.logs.substring(0, 2000) : ''}`);
+
+        let rawLogs = result.logs || '';
+        // Parse structured test details if embedded by grader
+        const detailsMatch = rawLogs.match(/---TEST_DETAILS_JSON---\n([\s\S]*?)\n---END_TEST_DETAILS_JSON---/);
+        if (detailsMatch?.[1]) {
+            try {
+                const parsed = JSON.parse(detailsMatch[1]);
+                setTestDetails(parsed);
+            } catch {
+                setTestDetails([]);
+            }
+            rawLogs = rawLogs.replace(/---TEST_DETAILS_JSON---[\s\S]*?---END_TEST_DETAILS_JSON---/, '').trim();
+        } else {
+            setTestDetails([]);
+        }
+
+        rawLogs = sanitizeTestLogs(rawLogs);
+
+        setTestOutput(`${status}\n\nPublic Tests: ${passed}/${total}${rawLogs ? '\n\n--- Test Output ---\n' + rawLogs.substring(0, 2000) : ''}`);
         setIsRunning(false);
-    }, [clearRunTestsTimers]);
+    }, [clearRunTestsTimers, sanitizeTestLogs]);
 
     const getLanguageForFile = useCallback((filePath: string) => {
         const ext = (filePath.split('.').pop() || '').toLowerCase();
@@ -230,7 +285,9 @@ export default function ExamWorkspace() {
     } = useExamSocket(attemptId, {
         onTimerExpired: () => {
             toast.warning('Time is up! Your exam is being automatically submitted.');
-            handleSubmit();
+            // Server auto-submits on timer expiry, just update UI state
+            setIsSubmitting(true);
+            setTestOutput('⏱️ Time expired — your code is being submitted for final grading...');
         },
         onGradingComplete: (result, isPreview) => {
             if (process.env.NODE_ENV === 'development') {
@@ -1150,9 +1207,29 @@ export default function ExamWorkspace() {
                             </div>
                         </div>
                         {!isOutputCollapsed && (
-                            <pre className={styles.outputContent}>
-                                {testOutput}
-                            </pre>
+                            <div className={styles.outputContent}>
+                                {testDetails.length > 0 ? (
+                                    <div className={styles.testResults}>
+                                        {testDetails.map((t, i) => (
+                                            <div key={i} className={`${styles.testCase} ${t.status === 'passed' ? styles.testPassed : styles.testFailed}`}>
+                                                <div className={styles.testHeader}>
+                                                    {t.status === 'passed' ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                                                    <span className={styles.testName}>{t.name}</span>
+                                                </div>
+                                                {t.status !== 'passed' && t.failureMessages && t.failureMessages.length > 0 && (
+                                                    <pre className={styles.testFailure}>
+                                                        {t.failureMessages.join('\n')}
+                                                    </pre>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+                                        {testOutput}
+                                    </pre>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>

@@ -151,10 +151,12 @@ export default function EditChallengePage() {
                 runtime: 'node',
                 candidate: {
                     image: 'node:20-alpine',
+                    workdir: '/app',
                     installCommand: 'npm install --legacy-peer-deps 2>&1',
                     runCommand: 'node src/server.js',
                     port: 3000,
                     healthPath: '/',
+                    startupTimeoutMs: 30000,
                 },
                 tests: {
                     framework: 'jest',
@@ -169,6 +171,7 @@ export default function EditChallengePage() {
                 runtime: 'python',
                 candidate: {
                     image: 'python:3.11-slim',
+                    workdir: '/app',
                     generatedFiles: {
                         'requirements.txt': 'fastapi==0.115.5\nuvicorn==0.32.1\n',
                     },
@@ -176,6 +179,7 @@ export default function EditChallengePage() {
                     runCommand: 'python -m uvicorn main:app --host 0.0.0.0 --port $PORT',
                     port: 3000,
                     healthPath: '/',
+                    startupTimeoutMs: 30000,
                 },
                 tests: {
                     framework: 'jest',
@@ -190,6 +194,7 @@ export default function EditChallengePage() {
                 runtime: 'python',
                 candidate: {
                     image: 'python:3.11-slim',
+                    workdir: '/app',
                     generatedFiles: {
                         'requirements.txt': 'flask==3.0.3\n',
                     },
@@ -197,6 +202,7 @@ export default function EditChallengePage() {
                     runCommand: 'python app.py',
                     port: 3000,
                     healthPath: '/',
+                    startupTimeoutMs: 30000,
                 },
                 tests: {
                     framework: 'jest',
@@ -211,10 +217,12 @@ export default function EditChallengePage() {
                 runtime: 'go',
                 candidate: {
                     image: 'golang:1.22-alpine',
+                    workdir: '/app',
                     installCommand: 'go build -o app .',
                     runCommand: './app',
                     port: 3000,
                     healthPath: '/',
+                    startupTimeoutMs: 30000,
                 },
                 tests: {
                     framework: 'jest',
@@ -229,6 +237,7 @@ export default function EditChallengePage() {
                 runtime: 'react',
                 candidate: {
                     image: 'node:20-alpine',
+                    workdir: '/app',
                     installCommand: 'npm install --legacy-peer-deps 2>&1',
                     generatedFiles: {
                         'package.json': JSON.stringify({
@@ -252,6 +261,7 @@ export default function EditChallengePage() {
                     runCommand: 'npm run dev -- --host 0.0.0.0 --port $PORT',
                     port: 3000,
                     healthPath: '/',
+                    startupTimeoutMs: 30000,
                 },
                 tests: {
                     framework: 'playwright',

@@ -1,5 +1,4 @@
 node_modules
-dist
 .next
 .turbo
 *.log
@@ -23,6 +22,26 @@ certbot/
 .vscode
 .idea
 
-# Build cache
+# Build cache & output
 *.tsbuildinfo
 .eslintcache
+dist/
+
+# Package store
+.pnpm-store/
+
+# Uploads
+uploads/
+
+# Temp/debug files
+useless/
+analysis.txt
+comprehensive_analysis.py
+analyze_spot_prices.py
+extract_region.py
+debug_hidden.spec.js
+debug_public.spec.js
+nginx.conf.updated
+SECURITY-AUDIT-REPORT.md
+scripts/security-audit.md
+scripts/aws-deploy/aws-config.env

@@ -1,5 +1,86 @@
 import type { CreateChallengeInput } from '@exam-platform/shared';
 
+// Starter code extracted for Hot Swap - used in both starterFiles and generatedFiles
+const starterMainGo = `package main
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"sync"
+	"time"
+)
+
+type Event struct {
+	ID        string                 \`json:"id"\`
+	Type      string                 \`json:"type"\`
+	Payload   map[string]interface{} \`json:"payload"\`
+	Source    string                 \`json:"source,omitempty"\`
+	Timestamp time.Time              \`json:"timestamp"\`
+}
+
+var (
+	events  = make([]Event, 0)
+	counter = 0
+	mu      sync.RWMutex
+)
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", healthHandler)
+	mux.HandleFunc("/events", eventsHandler)
+	mux.HandleFunc("/events/", eventByIDHandler)
+	mux.HandleFunc("/stats", statsHandler)
+
+	port := os.Getenv("PORT")
+	if port == "" { port = "3000" }
+	log.Printf("Event Logger on :%s", port)
+	log.Fatal(http.ListenAndServe("0.0.0.0:"+port, mux))
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+}
+
+func eventsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	switch r.Method {
+	case http.MethodPost:
+		// TODO: Create event
+		w.WriteHeader(http.StatusNotImplemented)
+		json.NewEncoder(w).Encode(map[string]string{"error": "not implemented"})
+	case http.MethodGet:
+		// TODO: List with filters (type, from, to, limit)
+		json.NewEncoder(w).Encode([]Event{})
+	case http.MethodDelete:
+		// TODO: Purge old events
+		w.WriteHeader(http.StatusNotImplemented)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func eventByIDHandler(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimPrefix(r.URL.Path, "/events/")
+	// TODO: Get event by ID
+	_ = id
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+func statsHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO: Return total count and counts by type
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"total":  0,
+		"byType": map[string]int{},
+	})
+}
+`;
+
 export const challenge: CreateChallengeInput = {
   name: 'Event Logger API (Go)',
   description: `# Event Logger API
@@ -118,85 +199,7 @@ Purge old events.
 `,
 
   starterFiles: {
-    'main.go': `package main
-
-import (
-	"encoding/json"
-	"log"
-	"net/http"
-	"os"
-	"strings"
-	"sync"
-	"time"
-)
-
-type Event struct {
-	ID        string                 \`json:"id"\`
-	Type      string                 \`json:"type"\`
-	Payload   map[string]interface{} \`json:"payload"\`
-	Source    string                 \`json:"source,omitempty"\`
-	Timestamp time.Time              \`json:"timestamp"\`
-}
-
-var (
-	events  = make([]Event, 0)
-	counter = 0
-	mu      sync.RWMutex
-)
-
-func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/health", healthHandler)
-	mux.HandleFunc("/events", eventsHandler)
-	mux.HandleFunc("/events/", eventByIDHandler)
-	mux.HandleFunc("/stats", statsHandler)
-
-	port := os.Getenv("PORT")
-	if port == "" { port = "3000" }
-	log.Printf("Event Logger on :%s", port)
-	log.Fatal(http.ListenAndServe("0.0.0.0:"+port, mux))
-}
-
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"ok": true})
-}
-
-func eventsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	switch r.Method {
-	case http.MethodPost:
-		// TODO: Create event
-		w.WriteHeader(http.StatusNotImplemented)
-		json.NewEncoder(w).Encode(map[string]string{"error": "not implemented"})
-	case http.MethodGet:
-		// TODO: List with filters (type, from, to, limit)
-		json.NewEncoder(w).Encode([]Event{})
-	case http.MethodDelete:
-		// TODO: Purge old events
-		w.WriteHeader(http.StatusNotImplemented)
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
-}
-
-func eventByIDHandler(w http.ResponseWriter, r *http.Request) {
-	id := strings.TrimPrefix(r.URL.Path, "/events/")
-	// TODO: Get event by ID
-	_ = id
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-func statsHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: Return total count and counts by type
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"total":  0,
-		"byType": map[string]int{},
-	})
-}
-`,
+    'main.go': starterMainGo,
     'README.md': `# Event Logger API (Go)
 
 Implement event logging in \`main.go\`.
@@ -212,9 +215,12 @@ Implement event logging in \`main.go\`.
     candidate: {
       image: 'golang:1.23-alpine',
       workdir: '/app',
-      generatedFiles: { 'go.mod': 'module candidate\n\ngo 1.23\n' },
+      generatedFiles: {
+        'go.mod': 'module candidate\\n\\ngo 1.23\\n',
+        'main.go': starterMainGo,  // Hot Swap: pre-compile during warmup
+      },
       installCommand: 'go build -o app .',
-      runCommand: './app',
+      runCommand: 'go build -o app . && ./app',  // Incremental rebuild
       port: 3000,
       healthPath: '/health',
       startupTimeoutMs: 30000,

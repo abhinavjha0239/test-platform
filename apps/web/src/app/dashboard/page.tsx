@@ -1,18 +1,23 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/auth-store';
-import { api } from '@/lib/api';
-import { Code2, Clock, CheckCircle, XCircle, Play, LogOut, Calendar } from 'lucide-react';
+import { api, PaginationParams } from '@/lib/api';
+import { usePaginatedQuery } from '@/hooks';
+import {
+    Code2, Clock, Play, LogOut, Calendar, ChevronLeft, ChevronRight,
+    CheckCircle, XCircle, Loader2, Timer, TrendingUp, ChevronDown, ChevronUp as ChevronUpIcon,
+    BarChart3
+} from 'lucide-react';
 import { ExamCountdown, useExamScheduleStatus } from '@/components/ExamCountdown';
 import styles from './dashboard.module.css';
 
 interface Exam {
     id: string;
     title: string;
-    description?: string;
+    description?: string | null;
     timeLimit: number;
     scheduledStartAt?: string | null;
     scheduledEndAt?: string | null;
@@ -25,79 +30,75 @@ interface Attempt {
     examId: string;
     status: string;
     startedAt: string;
-    publicScore?: number;
-    totalPublic?: number;
+    submittedAt?: string | null;
+    publicScore?: number | null;
+    hiddenScore?: number | null;
+    totalPublic?: number | null;
+    totalHidden?: number | null;
     exam?: { title: string; timeLimit: number };
 }
+
+const EXAMS_PER_PAGE = 12;
 
 export default function DashboardPage() {
     const router = useRouter();
     const { user, checkAuth, logout } = useAuthStore();
-    const [exams, setExams] = useState<Exam[]>([]);
+    const [authReady, setAuthReady] = useState(false);
     const [attempts, setAttempts] = useState<Attempt[]>([]);
-    const [loading, setLoading] = useState(true);
-    
-    // Prevent duplicate fetches
-    const hasFetchedRef = useRef(false);
-    const isFetchingRef = useRef(false);
+    const [attemptsLoading, setAttemptsLoading] = useState(true);
+    const [expandedAttempt, setExpandedAttempt] = useState<string | null>(null);
 
-    const loadData = useCallback(async () => {
-        // Prevent concurrent fetches
-        if (isFetchingRef.current) return;
-        isFetchingRef.current = true;
-        
-        try {
-            const [examsRes, attemptsData] = await Promise.all([
-                api.getExams(),    // Returns PaginatedResponse with .data
-                api.getAttempts(), // Returns array directly
-            ]);
-            // Filter out any invalid items
-            const validExams = (examsRes?.data || []).filter((e: Exam) => e && e.id);
-            const validAttempts = (attemptsData || []).filter((a: Attempt) => a && a.id);
-            setExams(validExams);
-            setAttempts(validAttempts);
-            hasFetchedRef.current = true;
-        } catch (error) {
-            console.error('Failed to load data:', error);
-            setExams([]);
-            setAttempts([]);
-        } finally {
-            setLoading(false);
-            isFetchingRef.current = false;
-        }
+    const examsFetcher = useCallback(async (params: PaginationParams) => {
+        const res = await api.getExams({ ...params, limit: EXAMS_PER_PAGE });
+        return { data: res.data || [], total: res.total, page: res.page, limit: res.limit };
     }, []);
 
-    // Single consolidated effect for auth check and data loading
+    const {
+        data: exams,
+        total: totalExams,
+        page: examPage,
+        isLoading: examsLoading,
+        setPage: setExamPage,
+    } = usePaginatedQuery<Exam>(examsFetcher, { enabled: authReady });
+
+    const totalExamPages = Math.ceil(totalExams / EXAMS_PER_PAGE);
+
+    // Auth check and load attempts
     useEffect(() => {
         let mounted = true;
-        
+
         const init = async () => {
             await checkAuth();
-            
             if (!mounted) return;
-            
-            // Get fresh user state after checkAuth
+
             const currentUser = useAuthStore.getState().user;
-            
             if (!currentUser) {
                 router.push('/login');
                 return;
             }
-            
-            // Only fetch data if we haven't already
-            if (!hasFetchedRef.current) {
-                loadData();
+
+            setAuthReady(true);
+
+            // Load attempts separately
+            try {
+                const attemptsData = await api.getAttempts();
+                if (mounted) {
+                    const validAttempts = (attemptsData || []).filter((a: Attempt) => a && a.id);
+                    setAttempts(validAttempts);
+                }
+            } catch (error) {
+                console.error('Failed to load attempts:', error);
+            } finally {
+                if (mounted) setAttemptsLoading(false);
             }
         };
-        
+
         init();
-        
         return () => { mounted = false; };
-    }, [checkAuth, router, loadData]);
+    }, [checkAuth, router]);
 
     const handleStartExam = async (examId: string) => {
         try {
-            // api.startAttempt returns the attempt data directly
             const attempt = await api.startAttempt(examId);
             if (attempt?.id) {
                 router.push(`/exam/${attempt.id}`);
@@ -115,7 +116,7 @@ export default function DashboardPage() {
         router.push('/');
     };
 
-    if (loading || !user) {
+    if (!authReady || !user) {
         return <div className={styles.loading}>Loading...</div>;
     }
 
@@ -139,69 +140,235 @@ export default function DashboardPage() {
 
                 {/* Available Exams */}
                 <section className={styles.section}>
-                    <h2>Available Exams</h2>
-                    {!exams || exams.length === 0 ? (
+                    <div className={styles.sectionHeader}>
+                        <h2>Available Exams</h2>
+                        {totalExams > 0 && (
+                            <span className={styles.examCount}>{totalExams} exam{totalExams !== 1 ? 's' : ''}</span>
+                        )}
+                    </div>
+                    {examsLoading ? (
+                        <p className={styles.empty}>Loading exams...</p>
+                    ) : !exams || exams.length === 0 ? (
                         <p className={styles.empty}>No exams available at the moment.</p>
                     ) : (
-                        <div className={styles.grid}>
-                            {exams.map((exam) => (
-                                <ExamCard 
-                                    key={exam.id} 
-                                    exam={exam} 
-                                    onStart={handleStartExam} 
-                                />
-                            ))}
-                        </div>
+                        <>
+                            <div className={styles.grid}>
+                                {exams.map((exam) => (
+                                    <ExamCard
+                                        key={exam.id}
+                                        exam={exam}
+                                        onStart={handleStartExam}
+                                    />
+                                ))}
+                            </div>
+                            {totalExamPages > 1 && (
+                                <div className={styles.pagination}>
+                                    <button
+                                        className={styles.pageBtn}
+                                        onClick={() => setExamPage(examPage - 1)}
+                                        disabled={examPage <= 1}
+                                    >
+                                        <ChevronLeft size={16} /> Prev
+                                    </button>
+                                    <div className={styles.pageNumbers}>
+                                        {Array.from({ length: totalExamPages }, (_, i) => i + 1).map((p) => (
+                                            <button
+                                                key={p}
+                                                className={`${styles.pageNumber} ${p === examPage ? styles.pageNumberActive : ''}`}
+                                                onClick={() => setExamPage(p)}
+                                            >
+                                                {p}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button
+                                        className={styles.pageBtn}
+                                        onClick={() => setExamPage(examPage + 1)}
+                                        disabled={examPage >= totalExamPages}
+                                    >
+                                        Next <ChevronRight size={16} />
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
                 </section>
+
+                {/* Summary Stats */}
+                {!attemptsLoading && attempts.length > 0 && (
+                    <div className={styles.statsRow}>
+                        <div className={styles.statCard}>
+                            <BarChart3 size={18} className={styles.statIcon} />
+                            <div>
+                                <span className={styles.statValue}>{attempts.length}</span>
+                                <span className={styles.statLabel}>Total Attempts</span>
+                            </div>
+                        </div>
+                        <div className={styles.statCard}>
+                            <CheckCircle size={18} className={styles.statIconGreen} />
+                            <div>
+                                <span className={styles.statValue}>
+                                    {attempts.filter(a => a.status === 'COMPLETED').length}
+                                </span>
+                                <span className={styles.statLabel}>Completed</span>
+                            </div>
+                        </div>
+                        <div className={styles.statCard}>
+                            <TrendingUp size={18} className={styles.statIconBlue} />
+                            <div>
+                                <span className={styles.statValue}>
+                                    {(() => {
+                                        const scored = attempts.filter(a => a.totalPublic && a.totalPublic > 0);
+                                        if (scored.length === 0) return '-';
+                                        const best = Math.max(...scored.map(a => {
+                                            const total = (a.totalPublic || 0) + (a.totalHidden || 0);
+                                            const passed = (a.publicScore || 0) + (a.hiddenScore || 0);
+                                            return total > 0 ? Math.round((passed / total) * 100) : 0;
+                                        }));
+                                        return `${best}%`;
+                                    })()}
+                                </span>
+                                <span className={styles.statLabel}>Best Score</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Past Attempts */}
                 <section className={styles.section}>
                     <h2>Your Attempts</h2>
-                    {!attempts || attempts.length === 0 ? (
+                    {attemptsLoading ? (
+                        <p className={styles.empty}>Loading attempts...</p>
+                    ) : !attempts || attempts.length === 0 ? (
                         <p className={styles.empty}>You haven't taken any exams yet.</p>
                     ) : (
-                        <div className={styles.table}>
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Exam</th>
-                                        <th>Status</th>
-                                        <th>Score</th>
-                                        <th>Date</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {attempts.map((attempt) => (
-                                        <tr key={attempt.id}>
-                                            <td>{attempt.exam?.title || 'Unknown'}</td>
-                                            <td>
-                                                <span className={`badge badge-${getStatusColor(attempt.status)}`}>
-                                                    {attempt.status}
+                        <div className={styles.attemptsList}>
+                            {attempts.map((attempt) => {
+                                const totalTests = (attempt.totalPublic || 0) + (attempt.totalHidden || 0);
+                                const passedTests = (attempt.publicScore || 0) + (attempt.hiddenScore || 0);
+                                const pct = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : null;
+                                const isExpanded = expandedAttempt === attempt.id;
+
+                                return (
+                                    <div key={attempt.id} className={styles.attemptCard}>
+                                        <div
+                                            className={styles.attemptRow}
+                                            onClick={() => setExpandedAttempt(isExpanded ? null : attempt.id)}
+                                        >
+                                            <div className={styles.attemptMain}>
+                                                <span className={styles.attemptTitle}>
+                                                    {attempt.exam?.title || 'Unknown Exam'}
                                                 </span>
-                                            </td>
-                                            <td>
-                                                {attempt.totalPublic !== null && attempt.totalPublic !== undefined
-                                                    ? `${attempt.publicScore || 0}/${attempt.totalPublic}`
-                                                    : '-'}
-                                            </td>
-                                            <td>{new Date(attempt.startedAt).toLocaleDateString()}</td>
-                                            <td>
+                                                <span className={styles.attemptDate}>
+                                                    {new Date(attempt.startedAt).toLocaleDateString(undefined, {
+                                                        month: 'short', day: 'numeric', year: 'numeric'
+                                                    })}
+                                                </span>
+                                            </div>
+
+                                            <div className={styles.attemptMeta}>
+                                                {/* Score bar */}
+                                                {pct !== null ? (
+                                                    <div className={styles.attemptScore}>
+                                                        <div className={styles.attemptScoreBar}>
+                                                            <div
+                                                                className={styles.attemptScoreFill}
+                                                                style={{
+                                                                    width: `${pct}%`,
+                                                                    background: pct >= 70 ? 'var(--accent-green)' : pct >= 40 ? 'var(--accent-orange)' : 'var(--error)',
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <span
+                                                            className={styles.attemptScorePct}
+                                                            style={{ color: pct >= 70 ? 'var(--accent-green)' : pct >= 40 ? 'var(--accent-orange)' : 'var(--error)' }}
+                                                        >
+                                                            {pct}%
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className={styles.attemptPending}>Pending</span>
+                                                )}
+
+                                                {/* Status badge */}
+                                                <span className={`${styles.attemptBadge} ${styles[`badge_${attempt.status.toLowerCase()}`] || ''}`}>
+                                                    {attempt.status === 'COMPLETED' && <CheckCircle size={12} />}
+                                                    {attempt.status === 'FAILED' && <XCircle size={12} />}
+                                                    {attempt.status === 'IN_PROGRESS' && <Loader2 size={12} className={styles.spinner} />}
+                                                    {attempt.status === 'GRADING' && <Timer size={12} />}
+                                                    {attempt.status.replace(/_/g, ' ')}
+                                                </span>
+
+                                                {/* Action */}
                                                 {attempt.status === 'IN_PROGRESS' ? (
-                                                    <Link href={`/exam/${attempt.id}`} className="btn btn-sm btn-primary">
+                                                    <Link href={`/exam/${attempt.id}`} className="btn btn-sm btn-primary" onClick={e => e.stopPropagation()}>
                                                         Continue
                                                     </Link>
                                                 ) : attempt.status === 'COMPLETED' ? (
-                                                    <Link href={`/exam/${attempt.id}/result`} className="btn btn-sm btn-secondary">
+                                                    <Link href={`/exam/${attempt.id}/result`} className="btn btn-sm btn-secondary" onClick={e => e.stopPropagation()}>
                                                         View Result
                                                     </Link>
-                                                ) : null}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                                ) : <div style={{ width: 90 }} />}
+
+                                                {/* Expand toggle */}
+                                                {isExpanded ? <ChevronUpIcon size={16} /> : <ChevronDown size={16} />}
+                                            </div>
+                                        </div>
+
+                                        {/* Expanded details */}
+                                        {isExpanded && (
+                                            <div className={styles.attemptDetails}>
+                                                <div className={styles.detailGrid}>
+                                                    <div className={styles.detailItem}>
+                                                        <span className={styles.detailLabel}>Public Tests</span>
+                                                        <span className={styles.detailValue}>
+                                                            {attempt.publicScore ?? '-'} / {attempt.totalPublic ?? '-'}
+                                                        </span>
+                                                    </div>
+                                                    <div className={styles.detailItem}>
+                                                        <span className={styles.detailLabel}>Hidden Tests</span>
+                                                        <span className={styles.detailValue}>
+                                                            {attempt.hiddenScore ?? '-'} / {attempt.totalHidden ?? '-'}
+                                                        </span>
+                                                    </div>
+                                                    <div className={styles.detailItem}>
+                                                        <span className={styles.detailLabel}>Started</span>
+                                                        <span className={styles.detailValue}>
+                                                            {new Date(attempt.startedAt).toLocaleString(undefined, {
+                                                                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                    <div className={styles.detailItem}>
+                                                        <span className={styles.detailLabel}>Submitted</span>
+                                                        <span className={styles.detailValue}>
+                                                            {attempt.submittedAt
+                                                                ? new Date(attempt.submittedAt).toLocaleString(undefined, {
+                                                                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                                                })
+                                                                : '-'}
+                                                        </span>
+                                                    </div>
+                                                    <div className={styles.detailItem}>
+                                                        <span className={styles.detailLabel}>Duration</span>
+                                                        <span className={styles.detailValue}>
+                                                            {attempt.submittedAt && attempt.startedAt
+                                                                ? `${Math.round((new Date(attempt.submittedAt).getTime() - new Date(attempt.startedAt).getTime()) / 60000)} min`
+                                                                : '-'}
+                                                        </span>
+                                                    </div>
+                                                    <div className={styles.detailItem}>
+                                                        <span className={styles.detailLabel}>Time Limit</span>
+                                                        <span className={styles.detailValue}>
+                                                            {attempt.exam?.timeLimit ? `${attempt.exam.timeLimit} min` : '-'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </section>
@@ -240,7 +407,7 @@ function ExamCard({ exam, onStart }: { exam: Exam; onStart: (id: string) => void
             {exam.description && (
                 <p className={styles.description}>{exam.description}</p>
             )}
-            
+
             {/* Show scheduling info if applicable */}
             {(exam.scheduledStartAt || exam.scheduledEndAt) && (
                 <div style={{ marginTop: '12px' }}>
@@ -251,17 +418,17 @@ function ExamCard({ exam, onStart }: { exam: Exam; onStart: (id: string) => void
                     />
                 </div>
             )}
-            
+
             <button
                 onClick={() => onStart(exam.id)}
                 className="btn btn-primary"
                 style={{ marginTop: '16px' }}
                 disabled={!canStart}
                 title={
-                    isEnded 
-                        ? 'Exam has ended' 
-                        : isBeforeStart 
-                            ? 'Exam has not started yet' 
+                    isEnded
+                        ? 'Exam has ended'
+                        : isBeforeStart
+                            ? 'Exam has not started yet'
                             : undefined
                 }
             >

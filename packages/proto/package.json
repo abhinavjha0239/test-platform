@@ -1,0 +1,13 @@
+{
+  "name": "@exam-platform/proto",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "generate": "buf generate",
+    "lint": "buf lint",
+    "breaking": "buf breaking --against .git#branch=main"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "^1.28.0"
+  }
+}

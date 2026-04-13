@@ -1,0 +1,146 @@
+{
+    "CallerReference": "100xdevs-smilein-live-dist",
+    "Aliases": {
+        "Quantity": 1,
+        "Items": [
+            "100xdevs.smilein.live"
+        ]
+    },
+    "Origins": {
+        "Quantity": 1,
+        "Items": [
+            {
+                "Id": "exam-platform-ec2",
+                "DomainName": "3.6.211.240",
+                "CustomOriginConfig": {
+                    "HTTPPort": 80,
+                    "HTTPSPort": 443,
+                    "OriginProtocolPolicy": "http-only",
+                    "OriginSslProtocols": {
+                        "Quantity": 1,
+                        "Items": [
+                            "TLSv1.2"
+                        ]
+                    },
+                    "OriginReadTimeout": 60,
+                    "OriginKeepaliveTimeout": 60
+                }
+            }
+        ]
+    },
+    "DefaultCacheBehavior": {
+        "TargetOriginId": "exam-platform-ec2",
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "AllowedMethods": {
+            "Quantity": 7,
+            "Items": [
+                "GET",
+                "HEAD",
+                "OPTIONS",
+                "PUT",
+                "POST",
+                "PATCH",
+                "DELETE"
+            ],
+            "CachedMethods": {
+                "Quantity": 2,
+                "Items": [
+                    "GET",
+                    "HEAD"
+                ]
+            }
+        },
+        "Compress": true,
+        "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+        "OriginRequestPolicyId": "216adef6-5c7f-47e4-b989-5492eafa07d3"
+    },
+    "CacheBehaviors": {
+        "Quantity": 3,
+        "Items": [
+            {
+                "PathPattern": "/api/*",
+                "TargetOriginId": "exam-platform-ec2",
+                "ViewerProtocolPolicy": "redirect-to-https",
+                "AllowedMethods": {
+                    "Quantity": 7,
+                    "Items": [
+                        "GET",
+                        "HEAD",
+                        "OPTIONS",
+                        "PUT",
+                        "POST",
+                        "PATCH",
+                        "DELETE"
+                    ],
+                    "CachedMethods": {
+                        "Quantity": 2,
+                        "Items": [
+                            "GET",
+                            "HEAD"
+                        ]
+                    }
+                },
+                "Compress": true,
+                "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+                "OriginRequestPolicyId": "216adef6-5c7f-47e4-b989-5492eafa07d3"
+            },
+            {
+                "PathPattern": "/socket.io/*",
+                "TargetOriginId": "exam-platform-ec2",
+                "ViewerProtocolPolicy": "redirect-to-https",
+                "AllowedMethods": {
+                    "Quantity": 7,
+                    "Items": [
+                        "GET",
+                        "HEAD",
+                        "OPTIONS",
+                        "PUT",
+                        "POST",
+                        "PATCH",
+                        "DELETE"
+                    ],
+                    "CachedMethods": {
+                        "Quantity": 2,
+                        "Items": [
+                            "GET",
+                            "HEAD"
+                        ]
+                    }
+                },
+                "Compress": true,
+                "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+                "OriginRequestPolicyId": "216adef6-5c7f-47e4-b989-5492eafa07d3"
+            },
+            {
+                "PathPattern": "/_next/static/*",
+                "TargetOriginId": "exam-platform-ec2",
+                "ViewerProtocolPolicy": "redirect-to-https",
+                "AllowedMethods": {
+                    "Quantity": 2,
+                    "Items": [
+                        "GET",
+                        "HEAD"
+                    ],
+                    "CachedMethods": {
+                        "Quantity": 2,
+                        "Items": [
+                            "GET",
+                            "HEAD"
+                        ]
+                    }
+                },
+                "Compress": true,
+                "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6"
+            }
+        ]
+    },
+    "Comment": "Exam Platform - 100xdevs.smilein.live",
+    "Enabled": true,
+    "ViewerCertificate": {
+        "ACMCertificateArn": "arn:aws:acm:us-east-1:887984651190:certificate/df2a02f8-d7cf-465b-a104-52c98c637923",
+        "SSLSupportMethod": "sni-only",
+        "MinimumProtocolVersion": "TLSv1.2_2021"
+    },
+    "HttpVersion": "http2and3",
+    "PriceClass": "PriceClass_200"
+}

@@ -8,7 +8,7 @@ import { stopAllLocalTimers } from './socket/timerService.js';
 import { startBackgroundFlush, gracefulShutdown as flushShutdown } from './lib/autosave-buffer.js';
 import { startExamScheduler, stopExamScheduler } from './lib/exam-scheduler.js';
 
-// NOTE: Pool management has been moved to the grader microservice (apps/grader).
+// NOTE: Pool management has been moved to the grader microservice (apps/grader-go).
 // This API server now only handles HTTP requests and WebSocket connections.
 
 const PORT = process.env.PORT || 3001;

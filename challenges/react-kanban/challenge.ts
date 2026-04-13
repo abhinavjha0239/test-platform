@@ -488,7 +488,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     },
     tests: {
       framework: 'playwright',
-      image: 'mcr.microsoft.com/playwright:v1.57.0-jammy',
+      image: 'mcr.microsoft.com/playwright:v1.58.2-jammy',
       installCommand: 'npm install 2>&1',
       testCommand: 'PLAYWRIGHT_JUNIT_OUTPUT_NAME=results.xml npx playwright test --reporter=junit 2>&1',
       timeoutMs: 180000,

@@ -2,44 +2,41 @@ import * as IORedis from 'ioredis';
 const Redis = (IORedis as any).default || IORedis;
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const useTLS = REDIS_URL.startsWith('rediss://');
+console.log(`🔗 Redis URL: ${REDIS_URL} (TLS: ${useTLS})`);
 
 /**
- * Shared Redis connection for BullMQ and general caching
+ * Create a Redis client with shared config.
+ * Automatically enables TLS when REDIS_URL uses rediss:// (Azure Cache for Redis).
  */
-export const redisConnection = new Redis(REDIS_URL, {
-    maxRetriesPerRequest: null, // Required for BullMQ
-    enableReadyCheck: false,
-    retryStrategy(times) {
-        const delay = Math.min(times * 50, 2000);
-        console.log(`Redis connection retry attempt ${times}, waiting ${delay}ms...`);
-        return delay;
-    },
-});
+function createRedisClient(overrides: Record<string, unknown> = {}) {
+    return new Redis(REDIS_URL, {
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+        ...(useTLS ? { tls: { rejectUnauthorized: false } } : {}),
+        retryStrategy(times: number) {
+            const delay = Math.min(times * 50, 2000);
+            return delay;
+        },
+        ...overrides,
+    });
+}
+
+/**
+ * Shared Redis connection for streams and general caching
+ */
+export const redisConnection = createRedisClient();
 
 /**
  * Separate Redis connection for pub/sub (subscriber)
  * Redis requires separate connections for pub/sub operations
  */
-export const redisSubscriber = new Redis(REDIS_URL, {
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-    retryStrategy(times) {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-    },
-});
+export const redisSubscriber = createRedisClient();
 
 /**
  * Separate Redis connection for pub/sub (publisher)
  */
-export const redisPublisher = new Redis(REDIS_URL, {
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-    retryStrategy(times) {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-    },
-});
+export const redisPublisher = createRedisClient();
 
 // Handle connection events
 redisConnection.on('connect', () => {
@@ -89,23 +86,9 @@ export const REDIS_CHANNELS = {
  * enabling horizontal scaling of API servers.
  */
 export function createAdapterPubClient(): typeof redisConnection {
-    return new Redis(REDIS_URL, {
-        maxRetriesPerRequest: null,
-        enableReadyCheck: false,
-        retryStrategy(times: number) {
-            const delay = Math.min(times * 50, 2000);
-            return delay;
-        },
-    });
+    return createRedisClient();
 }
 
 export function createAdapterSubClient(): typeof redisConnection {
-    return new Redis(REDIS_URL, {
-        maxRetriesPerRequest: null,
-        enableReadyCheck: false,
-        retryStrategy(times: number) {
-            const delay = Math.min(times * 50, 2000);
-            return delay;
-        },
-    });
+    return createRedisClient();
 }

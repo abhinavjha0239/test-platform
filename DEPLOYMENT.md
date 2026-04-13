@@ -59,7 +59,7 @@ Complete guide to deploying the Exam Platform on Google Cloud Platform (GCP) Com
 | Nginx | Reverse proxy, SSL termination | 80, 443 |
 | Web | Next.js frontend | 3000 (internal) |
 | API | Express backend + WebSocket | 3001 (internal) |
-| Worker | BullMQ grading worker | - |
+| Grader | Go Redis Streams grading worker | - |
 | PostgreSQL | Database | 5432 (internal) |
 | Redis | Job queue & pub/sub | 6379 (internal) |
 
@@ -384,7 +384,7 @@ docker-compose -f docker-compose.prod.yml logs -f
 
 # Specific service
 docker-compose -f docker-compose.prod.yml logs -f api
-docker-compose -f docker-compose.prod.yml logs -f worker
+docker-compose -f docker-compose.prod.yml logs -f grader
 docker-compose -f docker-compose.prod.yml logs -f nginx
 ```
 
@@ -469,18 +469,18 @@ docker-compose -f docker-compose.prod.yml exec postgres \
     psql -U postgres -c "SELECT 1;"
 ```
 
-#### 3. Grading worker not processing jobs
+#### 3. Grader not processing jobs
 
 ```bash
-# Check worker logs
-docker-compose -f docker-compose.prod.yml logs worker
+# Check grader logs
+docker-compose -f docker-compose.prod.yml logs grader
 
 # Check if Docker socket is accessible
-docker-compose -f docker-compose.prod.yml exec worker \
+docker-compose -f docker-compose.prod.yml exec grader \
     docker ps
 
-# Restart worker
-docker-compose -f docker-compose.prod.yml restart worker
+# Restart grader
+docker-compose -f docker-compose.prod.yml restart grader
 ```
 
 #### 4. SSL certificate issues
@@ -588,4 +588,3 @@ git pull && ./scripts/deploy.sh --build
 - [ ] Regular backups configured
 - [ ] HTTPS enforced (HTTP redirects to HTTPS)
 - [ ] Rate limiting configured in Nginx
-

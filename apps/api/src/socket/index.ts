@@ -4,6 +4,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import { verifyToken } from '../middleware/auth.js';
 import { redisSubscriber, redisConnection, REDIS_CHANNELS, createAdapterPubClient, createAdapterSubClient } from '../lib/redis.js';
 import { setupExamHandlers } from './examHandlers.js';
+import { setupKeystrokeHandlers } from './keystrokeService.js';
 import type { JwtPayload } from '@exam-platform/shared';
 
 // Extend Socket type with user data
@@ -77,6 +78,9 @@ export function initializeSocket(httpServer: http.Server): Server {
         // Set up exam handlers for this socket
         setupExamHandlers(io!, socket);
 
+        // Set up keystroke tracking handlers
+        setupKeystrokeHandlers(io!, socket);
+
         // Handle disconnection
         socket.on('disconnect', (reason) => {
             console.log(`🔌 Socket disconnected: ${socket.id} (reason: ${reason})`);
@@ -126,16 +130,28 @@ export function initializeSocket(httpServer: http.Server): Server {
  */
 function setupRedisSubscriptions(io: Server) {
     // Subscribe to grading complete events
+    console.log(`[DEBUG] Subscribing to Redis channels: ${REDIS_CHANNELS.GRADING_COMPLETE}, ${REDIS_CHANNELS.PROCTOR_EVENT}, ${SOCKET_EVICTION_CHANNEL}`);
     redisSubscriber.subscribe(REDIS_CHANNELS.GRADING_COMPLETE);
     redisSubscriber.subscribe(REDIS_CHANNELS.PROCTOR_EVENT);
     redisSubscriber.subscribe(SOCKET_EVICTION_CHANNEL);
 
+    redisSubscriber.on('subscribe', (channel: string, count: number) => {
+        console.log(`[DEBUG] Successfully subscribed to Redis channel=${channel}, total subscriptions=${count}`);
+    });
+
+    redisSubscriber.on('error', (error: Error) => {
+        console.error(`[DEBUG] Redis subscriber error:`, error);
+    });
+
     redisSubscriber.on('message', (channel: string, message: string) => {
         try {
+            console.log(`[DEBUG] Redis message received on channel=${channel}, message length=${message.length}`);
             const data = JSON.parse(message);
+            console.log(`[DEBUG] Parsed Redis message:`, { channel, attemptId: data.attemptId, isPreview: data.isPreview, hasResult: !!data.result });
 
             switch (channel) {
                 case REDIS_CHANNELS.GRADING_COMPLETE:
+                    console.log(`[DEBUG] Routing to handleGradingComplete for attemptId=${data.attemptId}`);
                     handleGradingComplete(io, data);
                     break;
 
@@ -226,10 +242,45 @@ function handleGradingComplete(io: Server, data: {
     result: unknown;
     isPreview: boolean;
 }) {
-    io.to(`attempt:${data.attemptId}`).emit('grading:complete', {
+    const roomName = `attempt:${data.attemptId}`;
+    const room = io.sockets.adapter.rooms.get(roomName);
+    const socketCount = room ? room.size : 0;
+
+    console.log(`[DEBUG] handleGradingComplete called: attemptId=${data.attemptId}, isPreview=${data.isPreview}, room=${roomName}, socketsInRoom=${socketCount}`);
+
+    let summary: Record<string, unknown> | undefined;
+    if (data.result && typeof data.result === 'object') {
+        const result = data.result as {
+            publicScore?: number;
+            totalPublic?: number;
+            hiddenScore?: number;
+            totalHidden?: number;
+            success?: boolean;
+        };
+        summary = {
+            publicScore: result.publicScore,
+            totalPublic: result.totalPublic,
+            hiddenScore: result.hiddenScore,
+            totalHidden: result.totalHidden,
+            success: result.success,
+        };
+    }
+    console.log(`[DEBUG] grading:complete event for attempt ${data.attemptId} (preview=${data.isPreview})`, summary);
+    console.log(`[DEBUG] Emitting to room=${roomName} with ${socketCount} socket(s)`);
+
+    io.to(roomName).emit('grading:complete', {
         result: data.result,
         isPreview: data.isPreview,
     });
+
+    // Release the rate limiting lock for preview runs (run-tests)
+    // This allows the user to run tests again after grading completes
+    if (data.isPreview) {
+        const lockKey = `grading:lock:${data.attemptId}`;
+        redisConnection.del(lockKey).catch(() => { }); // Ignore errors
+    }
+
+    console.log(`[DEBUG] Emitted grading:complete to room=${roomName}`);
 }
 
 /**

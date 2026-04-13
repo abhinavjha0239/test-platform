@@ -124,9 +124,71 @@ f         * (e.g. auto-generating package.json for runtime="node"). The HTTP bla
             timeoutMs: z.number().int().min(1000).max(300000).default(180000),
         }),
     }),
+
+    // SQL Mode - LeetCode-style database challenges
+    // Supports read-only (shared DB) and write (isolated containers) modes
+    z.object({
+        mode: z.literal('sql'),
+        runtime: z.enum(['postgresql', 'mysql']).default('postgresql'),
+
+        database: z.object({
+            // CREATE TABLE + INSERT statements for base data
+            setupScript: z.string().min(1),
+            // Optional: reset script for container reuse (write challenges)
+            resetScript: z.string().optional(),
+            // Optional: pre-baked Docker image name (write challenges)
+            image: z.string().optional(),
+        }),
+
+        // Sample data shown to student in exam UI
+        sampleData: z.object({
+            tables: z.record(z.object({
+                columns: z.array(z.object({
+                    name: z.string(),
+                    type: z.string(), // "INT", "VARCHAR(255)", "TIMESTAMP"
+                })),
+                rows: z.array(z.record(z.any())), // { id: 1, name: "Alice" }
+                truncated: z.boolean().default(false), // true if more rows exist
+            })),
+        }),
+
+        tests: z.object({
+            // 'shared' = read-only shared DB, 'isolated' = container per attempt
+            isolation: z.enum(['shared', 'isolated']).default('shared'),
+            orderSensitive: z.boolean().default(false),
+            columnOrderSensitive: z.boolean().default(false),
+            timeoutMs: z.number().int().min(1000).max(30000).default(5000),
+        }),
+
+        publicTests: z.array(z.object({
+            name: z.string(),
+            // For SELECT: expected rows
+            expectedResult: z.array(z.record(z.any())).optional(),
+            // For mutations: validation query + expected
+            validationQuery: z.string().optional(),
+            expectedAfterMutation: z.array(z.record(z.any())).optional(),
+        })),
+
+        hiddenTests: z.array(z.object({
+            name: z.string(),
+            // Random data generator (optional)
+            dataGenerator: z.object({
+                table: z.string(),
+                count: z.number().int().min(1).max(1000),
+                columns: z.record(z.string()), // { age: "RANDOM_INT(18,80)" }
+            }).optional(),
+            // The correct query (for comparison)
+            referenceQuery: z.string(),
+            // For mutations: SELECT to check final state
+            validationQuery: z.string().optional(),
+        })),
+    }),
 ]);
 
 export type ChallengeRunner = z.infer<typeof challengeRunnerSchema>;
+
+// Type helper to extract SQL-specific runner configuration
+export type SQLChallengeRunner = Extract<ChallengeRunner, { mode: 'sql' }>;
 
 export const createChallengeSchema = z.object({
     name: z.string().min(3, 'Name must be at least 3 characters'),
@@ -226,7 +288,7 @@ export const startAttemptSchema = z.object({
 });
 
 export const submitAttemptSchema = z.object({
-    files: z.record(z.string()), // { "src/app.js": "updated content" }
+    files: z.record(z.string()).optional(), // Optional - will use buffered/saved files if not provided
 });
 
 export const saveFilesSchema = z.object({
@@ -394,6 +456,8 @@ export interface ProctorEvent {
 
 export interface GradingJob {
     attemptId: string;
+    challengeId?: string;        // Challenge identifier for pooling
+    dependenciesHash?: string;   // Hash of challenge config for pool lookup
     files: Record<string, string>;
     publicTests: string;
     hiddenTests: string;

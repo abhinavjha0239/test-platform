@@ -6,7 +6,7 @@ import { AdminLayout } from '@/components/admin';
 import { DataTable, Column, ConfirmModal, Modal, InputField, SelectField, FormActions, useToast } from '@/components/ui';
 import { usePaginatedQuery, useMutation, useDebounce } from '@/hooks';
 import { api, PaginationParams } from '@/lib/api';
-import { Plus, Edit2, Trash2, Eye, EyeOff, Send, Copy, Check, Search, Flame, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, EyeOff, Send, Copy, Check, Search, Flame, Loader2, BarChart3 } from 'lucide-react';
 import styles from './exams.module.css';
 
 interface Exam {
@@ -181,9 +181,12 @@ export default function ExamsPage() {
         {
             key: 'actions',
             header: 'Actions',
-            width: '240px',
+            width: '280px',
             render: (exam) => (
                 <div className={styles.actions}>
+                    <Link href={`/admin/attempts?examId=${exam.id}`} className={styles.actionBtn} title="View Attempts">
+                        <BarChart3 size={14} />
+                    </Link>
                     <Link href={`/admin/exams/${exam.id}/edit`} className={styles.actionBtn} title="Edit">
                         <Edit2 size={14} />
                     </Link>

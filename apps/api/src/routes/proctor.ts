@@ -93,4 +93,66 @@ router.get('/events/:attemptId', authenticate, async (req, res, next) => {
     }
 });
 
+// GET /api/proctor/keystrokes/:attemptId - Get keystroke stats and typing speed (Admin/Reviewer only)
+router.get('/keystrokes/:attemptId', authenticate, async (req, res, next) => {
+    try {
+        if (req.user!.role === 'CANDIDATE') {
+            throw new ApiError('Not authorized', 403);
+        }
+
+        const { getKeystrokeStats, getTypingSpeedHistory, getKeystrokeBatches } = await import('../socket/keystrokeService.js');
+
+        const [stats, speedHistory, batches] = await Promise.all([
+            getKeystrokeStats(req.params.attemptId),
+            getTypingSpeedHistory(req.params.attemptId),
+            getKeystrokeBatches(req.params.attemptId), // all batches
+        ]);
+
+        // Calculate average WPM from speed history
+        let avgWpm = 0;
+        let avgCpm = 0;
+        let peakWpm = 0;
+        if (speedHistory.length > 0) {
+            const totalWpm = speedHistory.reduce((sum: number, s: any) => sum + s.wpm, 0);
+            const totalCpm = speedHistory.reduce((sum: number, s: any) => sum + s.cpm, 0);
+            avgWpm = Math.round(totalWpm / speedHistory.length);
+            avgCpm = Math.round(totalCpm / speedHistory.length);
+            peakWpm = Math.max(...speedHistory.map((s: any) => s.wpm));
+        }
+
+        // Flatten recent keystrokes from batches
+        const recentKeystrokes: Array<{ key: string; ts: number; ctrl?: boolean; shift?: boolean; alt?: boolean; meta?: boolean }> = [];
+        for (const batch of batches) {
+            if (batch.ks) {
+                for (const ks of batch.ks) {
+                    recentKeystrokes.push({
+                        key: ks.k,
+                        ts: ks.t,
+                        ctrl: ks.c ? true : undefined,
+                        shift: ks.s ? true : undefined,
+                        alt: ks.a ? true : undefined,
+                        meta: ks.m ? true : undefined,
+                    });
+                }
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                stats: stats || { totalKeystrokes: 0, lastWpm: 0, lastCpm: 0, sessionDuration: 0 },
+                typingSpeed: {
+                    avgWpm,
+                    avgCpm,
+                    peakWpm,
+                    history: speedHistory,
+                },
+                recentKeystrokes,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
 export default router;

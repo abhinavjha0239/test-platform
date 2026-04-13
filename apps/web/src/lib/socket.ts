@@ -33,8 +33,10 @@ let socketListenersAttached = false;
 
 /**
  * API URL for Socket.IO connection
+ * In production, connect via the same origin (nginx proxies /socket.io/ to the API).
+ * In development, connect directly to the API server.
  */
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001');
 
 function rejoinActiveAttempts(reason: string): void {
     if (!socket || !socket.connected) {
@@ -66,14 +68,14 @@ function rejoinActiveAttempts(reason: string): void {
  */
 export function getSocket(): Socket {
     const token = api.getToken();
-    
+
     if (socket) {
         // Check if token has changed - if so, update auth
         const currentAuth = socket.auth as { token?: string };
         if (currentAuth.token !== token) {
             // Update socket auth for next reconnection
             socket.auth = { token };
-            
+
             // If connected with old token, disconnect to force reconnection with new token
             if (socket.connected && !token) {
                 socket.disconnect();
@@ -81,10 +83,11 @@ export function getSocket(): Socket {
         }
         return socket;
     }
-    
+
     socket = io(SOCKET_URL, {
         auth: { token },
         autoConnect: false,
+        transports: ['websocket'],  // Skip polling — avoids SID mismatch with multiple API instances
         reconnection: true,
         reconnectionAttempts: 10,
         reconnectionDelay: 1000,
@@ -100,7 +103,7 @@ export function getSocket(): Socket {
             if (socket) {
                 const newToken = api.getToken();
                 socket.auth = { token: newToken };
-                
+
                 if (!hasToken && socket.connected) {
                     // Token was cleared, disconnect
                     socket.disconnect();
@@ -127,17 +130,17 @@ export function getSocket(): Socket {
 
         socket.on('connect_error', (error) => {
             console.error('🔌 Socket connection error:', error.message);
-            
+
             // If authentication error, token might be expired
             if (error.message.includes('expired') || error.message.includes('Invalid')) {
                 console.log('🔌 Token may be expired, API client will handle refresh');
             }
         });
-        
+
         socket.on('reconnect', (attemptNumber) => {
             console.log('🔌 Socket reconnected after', attemptNumber, 'attempts');
         });
-        
+
         socket.on('reconnect_failed', () => {
             console.error('🔌 Socket reconnection failed');
         });
@@ -159,7 +162,7 @@ export function getSocket(): Socket {
         }
         socketListenersAttached = true;
     }
-    
+
     return socket;
 }
 
@@ -178,10 +181,10 @@ export function connectToExam(attemptId: string): Promise<{
 }> {
     return new Promise((resolve, reject) => {
         const socket = getSocket();
-        
+
         // Declare timeout variable first so it can be referenced in handlers
         let timeout: ReturnType<typeof setTimeout>;
-        
+
         const handleConnect = () => {
             clearTimeout(timeout);
             socket.off('connect_error', handleError);
@@ -195,7 +198,7 @@ export function connectToExam(attemptId: string): Promise<{
                 }
             });
         };
-        
+
         const handleError = (error: Error) => {
             clearTimeout(timeout);
             socket.off('connect', handleConnect);
@@ -203,7 +206,7 @@ export function connectToExam(attemptId: string): Promise<{
             activeAttemptIds.delete(attemptId);
             reject(error);
         };
-        
+
         // Set a timeout for the connection
         timeout = setTimeout(() => {
             socket.off('connect', handleConnect);
@@ -211,7 +214,7 @@ export function connectToExam(attemptId: string): Promise<{
             activeAttemptIds.delete(attemptId);
             reject(new Error('Connection timeout'));
         }, 15000);
-        
+
         if (socket.connected) {
             clearTimeout(timeout);
             handleConnect();
@@ -243,7 +246,7 @@ export function disconnectSocket(): void {
         socket = null;
         socketListenersAttached = false;
     }
-    
+
     if (tokenUnsubscribe) {
         tokenUnsubscribe();
         tokenUnsubscribe = null;
@@ -255,12 +258,12 @@ export function disconnectSocket(): void {
  * Save code files via WebSocket
  */
 export function saveFiles(
-    attemptId: string, 
+    attemptId: string,
     files: Record<string, string>
 ): Promise<{ success: boolean; savedAt?: number; error?: string }> {
     return new Promise((resolve) => {
         const socket = getSocket();
-        
+
         if (!socket.connected) {
             resolve({ success: false, error: 'Not connected' });
             return;
@@ -290,7 +293,7 @@ export function logProctorEvent(data: {
 }): Promise<{ success: boolean }> {
     return new Promise((resolve) => {
         const socket = getSocket();
-        
+
         if (!socket.connected) {
             resolve({ success: false });
             return;

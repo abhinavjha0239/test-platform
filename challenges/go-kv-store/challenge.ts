@@ -1,113 +1,7 @@
 import type { CreateChallengeInput } from '@exam-platform/shared';
 
-export const challenge: CreateChallengeInput = {
-  name: 'Key-Value Store API (Go)',
-  description: `# Key-Value Store API
-
-## What You're Building
-
-You're building an **in-memory key-value store API** using Go's standard library. Think of it as a simplified Redis - store values by key, retrieve them, and optionally set TTL (time-to-live).
-
-This is great for learning Go's \`net/http\` package and working with JSON.
-
----
-
-## API Contract
-
-#### \`PUT /kv/{key}\`
-Set a value for a key.
-
-**Request Body:** Raw value (string)
-\`\`\`json
-{ "value": "hello world" }
-\`\`\`
-
-**Success:**
-- \`201 Created\` if new key
-- \`200 OK\` if updating existing
-
-**Response:**
-\`\`\`json
-{ "key": "mykey", "value": "hello world", "createdAt": "..." }
-\`\`\`
-
----
-
-#### \`GET /kv/{key}\`
-Get value by key.
-
-**Success (200 OK):**
-\`\`\`json
-{ "key": "mykey", "value": "hello world", "expiresAt": null }
-\`\`\`
-
-**Error:** \`404\` - key not found or expired
-
----
-
-#### \`DELETE /kv/{key}\`
-Delete a key.
-
-**Success:** \`204 No Content\`
-**Error:** \`404\`
-
----
-
-#### \`POST /kv/{key}/expire\`
-Set TTL (time-to-live) in seconds.
-
-**Request:**
-\`\`\`json
-{ "ttl": 60 }
-\`\`\`
-
-**Success (200 OK):**
-\`\`\`json
-{ "key": "mykey", "expiresAt": "2024-01-15T10:01:00Z" }
-\`\`\`
-
----
-
-#### \`GET /kv\`
-List all keys (not expired).
-
-**Success (200 OK):**
-\`\`\`json
-["key1", "key2", "key3"]
-\`\`\`
-
----
-
-#### \`GET /health\`
-**Success (200 OK):** \`{ "ok": true }\`
-
----
-
-## Hints
-
-1. **Go HTTP**: Use \`http.HandleFunc\` or a mux like \`http.NewServeMux()\`
-2. **Path Parsing**: Extract key from path using \`strings.TrimPrefix\`
-3. **JSON**: Use \`json.NewDecoder(r.Body).Decode(&data)\` and \`json.NewEncoder(w).Encode(data)\`
-4. **TTL**: Store \`expiresAt\` as \`time.Time\`. On GET, check if \`time.Now().After(expiresAt)\`
-
----
-
-## Scoring
-
-| Requirement | Points |
-|-------------|--------|
-| Health endpoint | 1 |
-| PUT (create/update) | 2 |
-| GET key | 2 |
-| DELETE key | 2 |
-| List keys | 2 |
-| TTL/expiration | 3 |
-
-**Total: ~12 tests**
-`,
-
-  starterFiles: {
-    'main.go': `package main
+// Starter code extracted for Hot Swap - used in both starterFiles and generatedFiles
+const starterMainGo = `package main
 
 import (
 	"encoding/json"
@@ -223,7 +117,116 @@ func handleExpire(w http.ResponseWriter, r *http.Request, key string) {
 	w.WriteHeader(http.StatusNotImplemented)
 	json.NewEncoder(w).Encode(map[string]string{"error": "not implemented"})
 }
+`;
+
+export const challenge: CreateChallengeInput = {
+  name: 'Key-Value Store API (Go)',
+  description: `# Key-Value Store API
+
+## What You're Building
+
+You're building an **in-memory key-value store API** using Go's standard library. Think of it as a simplified Redis - store values by key, retrieve them, and optionally set TTL (time-to-live).
+
+This is great for learning Go's \`net/http\` package and working with JSON.
+
+---
+
+## API Contract
+
+#### \`PUT /kv/{key}\`
+Set a value for a key.
+
+**Request Body:** Raw value (string)
+\`\`\`json
+{ "value": "hello world" }
+\`\`\`
+
+**Success:**
+- \`201 Created\` if new key
+- \`200 OK\` if updating existing
+
+**Response:**
+\`\`\`json
+{ "key": "mykey", "value": "hello world", "createdAt": "..." }
+\`\`\`
+
+---
+
+#### \`GET /kv/{key}\`
+Get value by key.
+
+**Success (200 OK):**
+\`\`\`json
+{ "key": "mykey", "value": "hello world", "expiresAt": null }
+\`\`\`
+
+**Error:** \`404\` - key not found or expired
+
+---
+
+#### \`DELETE /kv/{key}\`
+Delete a key.
+
+**Success:** \`204 No Content\`
+**Error:** \`404\`
+
+---
+
+#### \`POST /kv/{key}/expire\`
+Set TTL (time-to-live) in seconds.
+
+**Request:**
+\`\`\`json
+{ "ttl": 60 }
+\`\`\`
+
+**Success (200 OK):**
+\`\`\`json
+{ "key": "mykey", "expiresAt": "2024-01-15T10:01:00Z" }
+\`\`\`
+
+---
+
+#### \`GET /kv\`
+List all keys (not expired).
+
+**Success (200 OK):**
+\`\`\`json
+["key1", "key2", "key3"]
+\`\`\`
+
+---
+
+#### \`GET /health\`
+**Success (200 OK):** \`{ "ok": true }\`
+
+---
+
+## Hints
+
+1. **Go HTTP**: Use \`http.HandleFunc\` or a mux like \`http.NewServeMux()\`
+2. **Path Parsing**: Extract key from path using \`strings.TrimPrefix\`
+3. **JSON**: Use \`json.NewDecoder(r.Body).Decode(&data)\` and \`json.NewEncoder(w).Encode(data)\`
+4. **TTL**: Store \`expiresAt\` as \`time.Time\`. On GET, check if \`time.Now().After(expiresAt)\`
+
+---
+
+## Scoring
+
+| Requirement | Points |
+|-------------|--------|
+| Health endpoint | 1 |
+| PUT (create/update) | 2 |
+| GET key | 2 |
+| DELETE key | 2 |
+| List keys | 2 |
+| TTL/expiration | 3 |
+
+**Total: ~12 tests**
 `,
+
+  starterFiles: {
+    'main.go': starterMainGo,
     'README.md': `# Key-Value Store API (Go)
 
 An in-memory key-value store built with Go.
@@ -251,10 +254,11 @@ Implement the TODO sections in \`main.go\`.
       image: 'golang:1.23-alpine',
       workdir: '/app',
       generatedFiles: {
-        'go.mod': 'module candidate\n\ngo 1.23\n',
+        'go.mod': 'module candidate\\n\\ngo 1.23\\n',
+        'main.go': starterMainGo,  // Hot Swap: pre-compile during warmup
       },
       installCommand: 'go build -o app .',
-      runCommand: './app',
+      runCommand: 'go build -o app . && ./app',  // Incremental rebuild
       port: 3000,
       healthPath: '/health',
       startupTimeoutMs: 30000,

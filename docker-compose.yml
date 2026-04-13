@@ -14,8 +14,6 @@ services:
       - JWT_SECRET=your-super-secret-jwt-key-at-least-32-chars
       - FRONTEND_URL=http://localhost:3000
       - NODE_ENV=production
-      # Security: Enable Docker-based grading isolation
-      - USE_DOCKER_GRADER=true
     volumes:
       # Mount Docker socket for docker-in-docker grading
       - /var/run/docker.sock:/var/run/docker.sock
@@ -54,6 +52,24 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # Go grader worker (Redis Streams consumer)
+  grader:
+    build:
+      context: .
+      dockerfile: apps/grader-go/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/exam_platform
+      - REDIS_URL=redis://redis:6379
+      - GRADING_CONCURRENCY=2
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:

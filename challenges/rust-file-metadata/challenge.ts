@@ -1,5 +1,127 @@
 import type { CreateChallengeInput } from '@exam-platform/shared';
 
+// Starter code extracted for Hot Swap - used in both starterFiles and generatedFiles
+const starterMainRs = `#![allow(unused)]
+
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::Json,
+    routing::{get, post, delete},
+    Router,
+};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tokio::{net::TcpListener, sync::Mutex};
+
+#[derive(Clone, Serialize, Deserialize)]
+struct FileMeta {
+    id: String,
+    name: String,
+    size: u64,
+    #[serde(rename = "mimeType")]
+    mime_type: String,
+    checksum: String,
+    #[serde(rename = "createdAt")]
+    created_at: String,
+}
+
+type AppState = Arc<Mutex<Vec<FileMeta>>>;
+
+#[tokio::main]
+async fn main() {
+    let state: AppState = Arc::new(Mutex::new(Vec::new()));
+
+    let app = Router::new()
+        .route("/health", get(health))
+        .route("/files", get(list_files).post(create_file))
+        .route("/files/duplicates", get(find_duplicates))
+        .route("/files/:id", get(get_file).delete(delete_file))
+        .route("/stats", get(stats))
+        .with_state(state);
+
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    let addr = format!("0.0.0.0:{}", port);
+    println!("Listening on {}", addr);
+    
+    let listener = TcpListener::bind(&addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn health() -> Json<serde_json::Value> {
+    Json(serde_json::json!({ "ok": true }))
+}
+
+#[derive(Deserialize)]
+struct CreateFile {
+    name: String,
+    size: u64,
+    #[serde(rename = "mimeType")]
+    mime_type: String,
+    checksum: String,
+}
+
+async fn create_file(
+    State(state): State<AppState>,
+    Json(payload): Json<CreateFile>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    // TODO: Create file metadata
+    (StatusCode::NOT_IMPLEMENTED, Json(serde_json::json!({"error": "not implemented"})))
+}
+
+#[derive(Deserialize)]
+struct ListQuery {
+    #[serde(rename = "mimeType")]
+    mime_type: Option<String>,
+    #[serde(rename = "minSize")]
+    min_size: Option<u64>,
+    #[serde(rename = "maxSize")]
+    max_size: Option<u64>,
+}
+
+async fn list_files(
+    State(state): State<AppState>,
+    Query(query): Query<ListQuery>,
+) -> Json<Vec<FileMeta>> {
+    // TODO: Filter by mimeType (support wildcards), minSize, maxSize
+    Json(vec![])
+}
+
+async fn get_file(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<FileMeta>, StatusCode> {
+    // TODO: Get file by ID
+    Err(StatusCode::NOT_IMPLEMENTED)
+}
+
+async fn delete_file(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> StatusCode {
+    // TODO: Delete file
+    StatusCode::NOT_IMPLEMENTED
+}
+
+async fn find_duplicates(
+    State(state): State<AppState>,
+) -> Json<Vec<Vec<FileMeta>>> {
+    // TODO: Group by checksum, return groups with 2+ files
+    Json(vec![])
+}
+
+async fn stats(
+    State(state): State<AppState>,
+) -> Json<serde_json::Value> {
+    // TODO: Calculate total files, total size, breakdown by mimeType
+    Json(serde_json::json!({
+        "totalFiles": 0,
+        "totalSize": 0,
+        "byMimeType": {}
+    }))
+}
+`;
+
 export const challenge: CreateChallengeInput = {
   name: 'File Metadata Service (Rust)',
   description: `# File Metadata Service
@@ -125,126 +247,7 @@ Storage statistics.
 `,
 
   starterFiles: {
-    'src/main.rs': `#![allow(unused)]
-
-use axum::{
-    extract::{Path, Query, State},
-    http::StatusCode,
-    response::Json,
-    routing::{get, post, delete},
-    Router,
-};
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio::{net::TcpListener, sync::Mutex};
-
-#[derive(Clone, Serialize, Deserialize)]
-struct FileMeta {
-    id: String,
-    name: String,
-    size: u64,
-    #[serde(rename = "mimeType")]
-    mime_type: String,
-    checksum: String,
-    #[serde(rename = "createdAt")]
-    created_at: String,
-}
-
-type AppState = Arc<Mutex<Vec<FileMeta>>>;
-
-#[tokio::main]
-async fn main() {
-    let state: AppState = Arc::new(Mutex::new(Vec::new()));
-
-    let app = Router::new()
-        .route("/health", get(health))
-        .route("/files", get(list_files).post(create_file))
-        .route("/files/duplicates", get(find_duplicates))
-        .route("/files/:id", get(get_file).delete(delete_file))
-        .route("/stats", get(stats))
-        .with_state(state);
-
-    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
-    let addr = format!("0.0.0.0:{}", port);
-    println!("Listening on {}", addr);
-    
-    let listener = TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
-}
-
-async fn health() -> Json<serde_json::Value> {
-    Json(serde_json::json!({ "ok": true }))
-}
-
-#[derive(Deserialize)]
-struct CreateFile {
-    name: String,
-    size: u64,
-    #[serde(rename = "mimeType")]
-    mime_type: String,
-    checksum: String,
-}
-
-async fn create_file(
-    State(state): State<AppState>,
-    Json(payload): Json<CreateFile>,
-) -> (StatusCode, Json<serde_json::Value>) {
-    // TODO: Create file metadata
-    (StatusCode::NOT_IMPLEMENTED, Json(serde_json::json!({"error": "not implemented"})))
-}
-
-#[derive(Deserialize)]
-struct ListQuery {
-    #[serde(rename = "mimeType")]
-    mime_type: Option<String>,
-    #[serde(rename = "minSize")]
-    min_size: Option<u64>,
-    #[serde(rename = "maxSize")]
-    max_size: Option<u64>,
-}
-
-async fn list_files(
-    State(state): State<AppState>,
-    Query(query): Query<ListQuery>,
-) -> Json<Vec<FileMeta>> {
-    // TODO: Filter by mimeType (support wildcards), minSize, maxSize
-    Json(vec![])
-}
-
-async fn get_file(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> Result<Json<FileMeta>, StatusCode> {
-    // TODO: Get file by ID
-    Err(StatusCode::NOT_IMPLEMENTED)
-}
-
-async fn delete_file(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> StatusCode {
-    // TODO: Delete file
-    StatusCode::NOT_IMPLEMENTED
-}
-
-async fn find_duplicates(
-    State(state): State<AppState>,
-) -> Json<Vec<Vec<FileMeta>>> {
-    // TODO: Group by checksum, return groups with 2+ files
-    Json(vec![])
-}
-
-async fn stats(
-    State(state): State<AppState>,
-) -> Json<serde_json::Value> {
-    // TODO: Calculate total files, total size, breakdown by mimeType
-    Json(serde_json::json!({
-        "totalFiles": 0,
-        "totalSize": 0,
-        "byMimeType": {}
-    }))
-}
-`,
+    'src/main.rs': starterMainRs,
     'README.md': `# File Metadata Service (Rust)
 
 Implement the handlers in \`src/main.rs\`.
@@ -273,9 +276,10 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = { version = "0.4", features = ["serde"] }
 `,
+        'src/main.rs': starterMainRs,  // Hot Swap: pre-compile during warmup
       },
       installCommand: 'cargo build --release',
-      runCommand: './target/release/candidate',
+      runCommand: 'cargo build --release && ./target/release/candidate',  // Incremental rebuild
       port: 3000,
       healthPath: '/health',
       startupTimeoutMs: 120000,

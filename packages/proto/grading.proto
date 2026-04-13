@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package grading;
+
+option go_package = "github.com/yourorg/proto-go/grading;grading";
+
+// Grading job sent from API to Grader via Redis
+message GradingJob {
+  string attempt_id = 1;
+  map<string, string> files = 2;
+  string public_tests = 3;
+  string hidden_tests = 4;
+  map<string, string> dependencies = 5;
+  string node_version = 6;
+  int32 time_limit = 7;       // seconds
+  int32 memory_limit = 8;     // MB
+  ChallengeRunner runner = 9;
+  bool is_preview = 10;
+}
+
+// Result sent from Grader back to API via Redis pub/sub
+message GradingResult {
+  int32 public_score = 1;
+  int32 hidden_score = 2;
+  int32 total_public = 3;
+  int32 total_hidden = 4;
+  string logs = 5;
+  bool success = 6;
+  string error = 7;
+}
+
+// Challenge runner configuration
+message ChallengeRunner {
+  string mode = 1;  // "http", "playwright", "ui_jsdom"
+  string runtime = 2;
+  CandidateSpec candidate = 3;
+  TestSpec tests = 4;
+}
+
+message CandidateSpec {
+  string image = 1;
+  string workdir = 2;
+  map<string, string> generated_files = 3;
+  string install_command = 4;
+  string run_command = 5;
+  int32 port = 6;
+  string health_path = 7;
+  map<string, string> env = 8;
+  int32 startup_timeout_ms = 9;
+}
+
+message TestSpec {
+  string framework = 1;  // "jest", "playwright", "vitest"
+  string image = 2;
+  string install_command = 3;
+  string test_command = 4;
+  map<string, string> env = 5;
+  int32 timeout_ms = 6;
+}

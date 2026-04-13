@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/admin';
-import { 
-    InputField, TextareaField, SelectField, 
-    FormGroup, FormActions, CodeEditor, useToast 
+import {
+    InputField, TextareaField, SelectField,
+    FormGroup, FormActions, CodeEditor, useToast
 } from '@/components/ui';
 import { useMutation } from '@/hooks';
 import { api } from '@/lib/api';
@@ -379,6 +379,132 @@ require('http').createServer((req, res) => {
                     timeoutMs: 180000,
                 },
             },
+
+            // SQL Presets
+            sql_readonly: {
+                mode: 'sql',
+                runtime: 'postgresql',
+                database: {
+                    setupScript: `CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE,
+    age INT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+INSERT INTO users (name, email, age) VALUES
+    ('Alice', 'alice@test.com', 28),
+    ('Bob', 'bob@test.com', 35),
+    ('Charlie', 'charlie@test.com', 42),
+    ('Diana', 'diana@test.com', 31),
+    ('Eve', 'eve@test.com', 25);`,
+                },
+                sampleData: {
+                    tables: {
+                        users: {
+                            columns: [
+                                { name: 'id', type: 'INT' },
+                                { name: 'name', type: 'VARCHAR(100)' },
+                                { name: 'email', type: 'VARCHAR(255)' },
+                                { name: 'age', type: 'INT' },
+                            ],
+                            rows: [
+                                { id: 1, name: 'Alice', email: 'alice@test.com', age: 28 },
+                                { id: 2, name: 'Bob', email: 'bob@test.com', age: 35 },
+                                { id: 3, name: 'Charlie', email: 'charlie@test.com', age: 42 },
+                            ],
+                            truncated: true,
+                        },
+                    },
+                },
+                tests: {
+                    isolation: 'shared',
+                    orderSensitive: false,
+                    columnOrderSensitive: false,
+                    timeoutMs: 5000,
+                },
+                publicTests: [
+                    {
+                        name: 'Select all users',
+                        expectedResult: [
+                            { id: 1, name: 'Alice', email: 'alice@test.com', age: 28 },
+                            { id: 2, name: 'Bob', email: 'bob@test.com', age: 35 },
+                            { id: 3, name: 'Charlie', email: 'charlie@test.com', age: 42 },
+                            { id: 4, name: 'Diana', email: 'diana@test.com', age: 31 },
+                            { id: 5, name: 'Eve', email: 'eve@test.com', age: 25 },
+                        ],
+                    },
+                ],
+                hiddenTests: [
+                    {
+                        name: 'Filter by age > 30',
+                        referenceQuery: 'SELECT * FROM users WHERE age > 30 ORDER BY id',
+                    },
+                ],
+            } as unknown as ChallengeRunner,
+
+            sql_write: {
+                mode: 'sql',
+                runtime: 'postgresql',
+                database: {
+                    setupScript: `CREATE TABLE tasks (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+INSERT INTO tasks (title, completed) VALUES
+    ('Learn SQL', FALSE),
+    ('Practice queries', FALSE);`,
+                    resetScript: 'TRUNCATE tasks RESTART IDENTITY CASCADE;',
+                },
+                sampleData: {
+                    tables: {
+                        tasks: {
+                            columns: [
+                                { name: 'id', type: 'INT' },
+                                { name: 'title', type: 'VARCHAR(255)' },
+                                { name: 'completed', type: 'BOOLEAN' },
+                            ],
+                            rows: [
+                                { id: 1, title: 'Learn SQL', completed: false },
+                                { id: 2, title: 'Practice queries', completed: false },
+                            ],
+                            truncated: false,
+                        },
+                    },
+                },
+                tests: {
+                    isolation: 'isolated',
+                    orderSensitive: false,
+                    columnOrderSensitive: false,
+                    timeoutMs: 10000,
+                },
+                publicTests: [
+                    {
+                        name: 'Insert a new task',
+                        validationQuery: 'SELECT COUNT(*) as count FROM tasks',
+                        expectedAfterMutation: [{ count: 3 }],
+                    },
+                ],
+                hiddenTests: [
+                    {
+                        name: 'Insert with random data',
+                        dataGenerator: {
+                            table: 'tasks',
+                            count: 5,
+                            columns: {
+                                title: "RANDOM_STRING(20)",
+                                completed: "RANDOM_BOOL()",
+                            },
+                        },
+                        referenceQuery: 'INSERT INTO tasks (title, completed) VALUES (\'New Task\', FALSE)',
+                        validationQuery: 'SELECT COUNT(*) as count FROM tasks',
+                    },
+                ],
+            } as unknown as ChallengeRunner,
         };
 
         const runner = presets[preset];
@@ -469,7 +595,7 @@ require('http').createServer((req, res) => {
             <form onSubmit={handleSubmit} className={styles.form}>
                 <div className={styles.formCard}>
                     <h2 className={styles.formSection}>Basic Information</h2>
-                    
+
                     <div className={styles.fieldGroup}>
                         <FormGroup columns={2}>
                             <InputField
@@ -549,6 +675,8 @@ require('http').createServer((req, res) => {
                                 { value: 'backend_go_http', label: 'Backend HTTP (Go) - Secure' },
                                 { value: 'react_playwright', label: 'React UI (Playwright E2E) - Secure' },
                                 { value: 'react_ui_jsdom', label: 'React UI (jsdom + Vitest) - Secure (fast)' },
+                                { value: 'sql_readonly', label: 'SQL (PostgreSQL Read-Only)' },
+                                { value: 'sql_write', label: 'SQL (PostgreSQL Write/Mutate)' },
                             ]}
                         />
                     </FormGroup>

@@ -135,6 +135,16 @@ export default function AdminDashboard() {
                 ) : (
                     <p className={styles.empty}>No attempts yet.</p>
                 )}
+                <div style={{ textAlign: 'right', marginTop: '12px' }}>
+                    <Link href="/admin/attempts" style={{
+                        color: 'var(--accent-blue)',
+                        fontSize: '13px',
+                        textDecoration: 'none',
+                        fontWeight: 500,
+                    }}>
+                        View All Attempts →
+                    </Link>
+                </div>
             </section>
         </AdminLayout>
     );

@@ -4,6 +4,11 @@ import postgres from 'postgres';
 import { eq } from 'drizzle-orm';
 import * as schema from './src/schema.js';
 
+// Import React ui_jsdom challenges
+import { challenge as expenseTrackerChallenge } from '../../challenges/react-expense-tracker/challenge.js';
+import { challenge as bookmarkManagerChallenge } from '../../challenges/react-bookmark-manager/challenge.js';
+import { challenge as studentRosterChallenge } from '../../challenges/react-student-roster/challenge.js';
+
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
     throw new Error('DATABASE_URL is required');
